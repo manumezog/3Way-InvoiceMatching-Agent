@@ -259,7 +259,7 @@ Phased plan. Each phase ends with a working, committable checkpoint.
 - [x] Decision output panel (status, confidence bar, reasoning)
 - [x] Eval Mode tab with ground-truth summary stubs
 
-### Phase 2 — Synthetic Data Pipeline
+### Phase 2 — Synthetic Data Pipeline ✅
 We **generate everything ourselves** — full control over ground truth, no licensing or PII risk, tunable difficulty, and the pipeline itself becomes a portfolio signal ("built a synthetic eval dataset").
 
 **Flow:**
@@ -282,14 +282,13 @@ We **generate everything ourselves** — full control over ground truth, no lice
 **Tools:** Puppeteer (HTML→PDF), `sharp` (image effects), Faker.js (data generation).
 
 **Tasks:**
-- [ ] Define scenario JSON schema (Zod) — POs, WMS receipts, invoices, ground-truth labels
-- [ ] Author the 12 scenarios JSON file
-- [ ] Build 4-5 HTML invoice templates with fake SVG logos
-- [ ] Puppeteer rendering script — JSON → PDF
-- [ ] `sharp` post-processing for messy variants (scanned, phone-photo, handwritten, crumpled)
-- [ ] Pre-draw 2-3 handwritten-annotation PNG overlays
-- [ ] Seed script: loads JSON → inserts PO + WMS into DB, renders PDFs to `/public/invoices/`
-- [ ] Ground-truth labels exposed to Eval Mode from the same JSON
+- [x] Define scenario JSON schema (Zod) — POs, WMS receipts, invoices, ground-truth labels
+- [x] Author the 12 scenarios JSON file (`data/scenarios.json` — single source of truth)
+- [x] Build 5 HTML invoice templates with SVG logos (Apex, Northwind, EuroTech, Crestline, Generic)
+- [x] Puppeteer rendering script — HTML → PNG → PDF
+- [x] `sharp` post-processing for messy variants (scanned, phone-photo, handwritten, crumpled)
+- [x] Seed script: `npm run seed` → inserts 12 POs + WMS receipts + invoices, renders 12 PDFs to `/public/invoices/`
+- [x] Ground-truth labels in `data/scenarios.json` — same file feeds Eval Mode (Phase 6)
 
 ### Phase 3 — Agent Tools (Individual)
 - [ ] `extract_pdf` — Gemini vision extraction with Zod schema validation

@@ -1,0 +1,363 @@
+[
+  {
+    "id": "scenario-01",
+    "title": "Clean Digital Invoice",
+    "difficulty": "easy",
+    "skill_tag": "Baseline",
+    "pdf_variant": "clean",
+    "vendor_template": "apex",
+    "ground_truth": { "status": "APPROVED", "flag_reason": null },
+    "purchase_order": {
+      "po_number": "PO-2024-0001",
+      "vendor_name": "Apex Logistics",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "LPT-X500", "description": "Laptop Model X500 (16GB RAM, 512GB SSD)", "qty": 100, "unit_price": 899.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "LPT-X500", "received_qty": 100 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "APX-INV-2024-0391",
+      "vendor_name": "Apex Logistics",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "LPT-X500", "description": "Laptop Model X500 (16GB RAM, 512GB SSD)", "qty": 100, "unit_price": 899.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-02",
+    "title": "Phone-Photo Scan",
+    "difficulty": "medium",
+    "skill_tag": "Vision OCR",
+    "pdf_variant": "photo",
+    "vendor_template": "northwind",
+    "ground_truth": { "status": "APPROVED", "flag_reason": null },
+    "purchase_order": {
+      "po_number": "PO-2024-0002",
+      "vendor_name": "Northwind Components",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "HUB-UC7", "description": "USB-C 7-Port Hub with Power Delivery", "qty": 50, "unit_price": 45.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "HUB-UC7", "received_qty": 50 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "NWC-2024-00892",
+      "vendor_name": "Northwind Components",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "HUB-UC7", "description": "USB-C 7-Port Hub with Power Delivery", "qty": 50, "unit_price": 45.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-03",
+    "title": "Fuzzy Vendor Name",
+    "difficulty": "medium",
+    "skill_tag": "Fuzzy Matching",
+    "pdf_variant": "clean",
+    "vendor_template": "generic",
+    "ground_truth": { "status": "APPROVED", "flag_reason": null },
+    "purchase_order": {
+      "po_number": "PO-2024-0003",
+      "vendor_name": "Acme Corporation",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "CBL-UG200", "description": "USB-A to USB-C Cable 2m (Pack of 10)", "qty": 200, "unit_price": 12.50 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "CBL-UG200", "received_qty": 200 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "ACME-24-7741",
+      "vendor_name": "ACME Corp.",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "CBL-UG200", "description": "USB-A to USB-C Cable 2m (Pack of 10)", "qty": 200, "unit_price": 12.50 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-04",
+    "title": "Partial Shortage",
+    "difficulty": "medium",
+    "skill_tag": "Multi-Line Reasoning",
+    "pdf_variant": "clean",
+    "vendor_template": "crestline",
+    "ground_truth": { "status": "FLAGGED", "flag_reason": "SHORTAGE" },
+    "purchase_order": {
+      "po_number": "PO-2024-0004",
+      "vendor_name": "Crestline Supply",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "MON-27Q", "description": "27-Inch QHD IPS Monitor", "qty": 50, "unit_price": 320.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "MON-27Q", "received_qty": 48 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "CSP-2024-2201",
+      "vendor_name": "Crestline Supply",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "MON-27Q", "description": "27-Inch QHD IPS Monitor", "qty": 50, "unit_price": 320.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-05",
+    "title": "Foreign Currency Invoice",
+    "difficulty": "hard",
+    "skill_tag": "FX Conversion",
+    "pdf_variant": "clean",
+    "vendor_template": "eurotech",
+    "ground_truth": { "status": "FLAGGED", "flag_reason": "FX_CONVERSION" },
+    "purchase_order": {
+      "po_number": "PO-2024-0005",
+      "vendor_name": "EuroTech GmbH",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "SRV-R2U", "description": "2U Rack Mount Server — 32-Core, 256GB RAM", "qty": 10, "unit_price": 2500.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "SRV-R2U", "received_qty": 10 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "ET-RE-2024-0088",
+      "vendor_name": "EuroTech GmbH",
+      "currency": "EUR",
+      "line_items": [
+        { "sku": "SRV-R2U", "description": "2U Rack Mount Server — 32-Core, 256GB RAM", "qty": 10, "unit_price": 2310.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-06",
+    "title": "Handwritten Annotation",
+    "difficulty": "hard",
+    "skill_tag": "Vision + Judgment",
+    "pdf_variant": "handwritten",
+    "vendor_template": "generic",
+    "ground_truth": { "status": "ESCALATED", "flag_reason": "LOW_CONFIDENCE" },
+    "purchase_order": {
+      "po_number": "PO-2024-0006",
+      "vendor_name": "Pinnacle Parts",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "PSU-850G", "description": "850W Gold-Rated Modular PSU", "qty": 30, "unit_price": 85.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "PSU-850G", "received_qty": 30 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "PNP-INV-1047",
+      "vendor_name": "Pinnacle Parts",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "PSU-850G", "description": "850W Gold-Rated Modular PSU", "qty": 30, "unit_price": 85.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-07",
+    "title": "Duplicate Invoice",
+    "difficulty": "medium",
+    "skill_tag": "Fraud Detection",
+    "pdf_variant": "clean",
+    "vendor_template": "apex",
+    "ground_truth": { "status": "FLAGGED", "flag_reason": "DUPLICATE" },
+    "purchase_order": {
+      "po_number": "PO-2024-0001",
+      "vendor_name": "Apex Logistics",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "LPT-X500", "description": "Laptop Model X500 (16GB RAM, 512GB SSD)", "qty": 100, "unit_price": 899.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "LPT-X500", "received_qty": 100 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "APX-INV-2024-0391",
+      "vendor_name": "Apex Logistics",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "LPT-X500", "description": "Laptop Model X500 (16GB RAM, 512GB SSD)", "qty": 100, "unit_price": 899.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-08",
+    "title": "Unauthorized Line Items",
+    "difficulty": "medium",
+    "skill_tag": "Unauthorized Items",
+    "pdf_variant": "clean",
+    "vendor_template": "generic",
+    "ground_truth": { "status": "FLAGGED", "flag_reason": "UNAUTHORIZED_ITEMS" },
+    "purchase_order": {
+      "po_number": "PO-2024-0008",
+      "vendor_name": "Ironstone Trading",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "CHR-ERG", "description": "Ergonomic Office Chair — Lumbar Support", "qty": 20, "unit_price": 250.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "CHR-ERG", "received_qty": 20 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "IRT-2024-0551",
+      "vendor_name": "Ironstone Trading",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "CHR-ERG", "description": "Ergonomic Office Chair — Lumbar Support", "qty": 20, "unit_price": 250.00 },
+        { "sku": "SVC-DELV", "description": "White-Glove Delivery & Assembly Service", "qty": 1, "unit_price": 350.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-09",
+    "title": "Tax Calculation Error",
+    "difficulty": "medium",
+    "skill_tag": "Arithmetic Reasoning",
+    "pdf_variant": "scanned",
+    "vendor_template": "generic",
+    "ground_truth": { "status": "FLAGGED", "flag_reason": "TAX_MISMATCH" },
+    "purchase_order": {
+      "po_number": "PO-2024-0009",
+      "vendor_name": "Meridian Supplies",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "MSE-WL5", "description": "Wireless Ergonomic Mouse — 5-Button", "qty": 100, "unit_price": 25.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "MSE-WL5", "received_qty": 100 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "MER-INV-7734",
+      "vendor_name": "Meridian Supplies",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "MSE-WL5", "description": "Wireless Ergonomic Mouse — 5-Button", "qty": 100, "unit_price": 25.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-10",
+    "title": "Price Gouging",
+    "difficulty": "easy",
+    "skill_tag": "Price Mismatch",
+    "pdf_variant": "clean",
+    "vendor_template": "crestline",
+    "ground_truth": { "status": "FLAGGED", "flag_reason": "PRICE_MISMATCH" },
+    "purchase_order": {
+      "po_number": "PO-2024-0010",
+      "vendor_name": "Crestline Supply",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "DSK-STD", "description": "Height-Adjustable Standing Desk — 60x30in", "qty": 20, "unit_price": 450.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "DSK-STD", "received_qty": 20 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "CSP-2024-2267",
+      "vendor_name": "Crestline Supply",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "DSK-STD", "description": "Height-Adjustable Standing Desk — 60x30in", "qty": 20, "unit_price": 495.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-11",
+    "title": "Near-Duplicate Vendor",
+    "difficulty": "hard",
+    "skill_tag": "Anti-Fraud Logic",
+    "pdf_variant": "crumpled",
+    "vendor_template": "apex",
+    "ground_truth": { "status": "ESCALATED", "flag_reason": "VENDOR_MISMATCH" },
+    "purchase_order": {
+      "po_number": "PO-2024-0011",
+      "vendor_name": "Apex Logistics",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "NSW-48G", "description": "48-Port Gigabit Managed Network Switch", "qty": 15, "unit_price": 380.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "NSW-48G", "received_qty": 15 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "APX-INV-2024-0412",
+      "vendor_name": "Apax Logistics Inc.",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "NSW-48G", "description": "48-Port Gigabit Managed Network Switch", "qty": 15, "unit_price": 380.00 }
+      ]
+    }
+  },
+  {
+    "id": "scenario-12",
+    "title": "Late Delivery Flag",
+    "difficulty": "easy",
+    "skill_tag": "Timeliness Check",
+    "pdf_variant": "clean",
+    "vendor_template": "northwind",
+    "ground_truth": { "status": "APPROVED", "flag_reason": null },
+    "purchase_order": {
+      "po_number": "PO-2024-0012",
+      "vendor_name": "Northwind Components",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "CAM-HD4K", "description": "4K USB Webcam with Auto-Focus & Ring Light", "qty": 60, "unit_price": 95.00 }
+      ]
+    },
+    "wms_receipt": {
+      "line_items": [
+        { "sku": "CAM-HD4K", "received_qty": 60 }
+      ]
+    },
+    "invoice": {
+      "invoice_number": "NWC-2024-01105",
+      "vendor_name": "Northwind Components",
+      "currency": "USD",
+      "line_items": [
+        { "sku": "CAM-HD4K", "description": "4K USB Webcam with Auto-Focus & Ring Light", "qty": 60, "unit_price": 95.00 }
+      ]
+    }
+  }
+]
