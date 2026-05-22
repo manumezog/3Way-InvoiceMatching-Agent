@@ -311,11 +311,13 @@ We **generate everything ourselves** — full control over ground truth, no lice
 - [x] Graceful no-op when Langfuse keys are absent (dev works without them)
 - [x] SSE sentinel `{"type":"done"}` closes the stream cleanly on client side
 
-### Phase 5 — Live UI Integration
-- [ ] Wire gallery cards to single-invoice agent run via SSE
-- [ ] Live trace panel streams real agent steps with animation
-- [ ] Decision output reveals with animation on completion
-- [ ] "Process Today's Batch" runs all invoices sequentially with running totals
+### Phase 5 — Live UI Integration ✅
+- [x] Gallery card click → real agent run via SSE (`/api/agent/stream`)
+- [x] Live trace panel: each step appears as `▸ running` then flips to `✓ done` in-place; auto-scrolls
+- [x] Decision panel reveals live result (status badge, confidence bar, agent reasoning, elapsed time)
+- [x] Result dot on card shows actual agent outcome (emerald/red/amber), not static ground-truth
+- [x] "Process Today's Batch" runs all 12 invoices sequentially; ActionBar shows live approved/flagged/escalated counters
+- [x] Cards disabled while any run is in progress; gallery header shows "N/12 processed"
 
 ### Phase 6 — Eval Mode
 - [ ] Eval runner endpoint (batch all 12 scenarios, compare to ground truth)
