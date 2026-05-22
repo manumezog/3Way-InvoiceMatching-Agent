@@ -39,7 +39,7 @@ export function crestlineTemplate(d: InvoiceRenderData): string {
   tbody tr { border-bottom: 1px solid #e7e5e4; }
   tbody tr:nth-child(even) { background: #fafaf9; }
   tbody td { padding: 10px 12px; font-size: 12.5px; color: #292524; }
-  td.sku { font-family: 'Courier New', monospace; font-size: 11px; color: #78716c; }
+  td.sku { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #44403c; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   td.bold { font-weight: 700; }
   .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 28px; }
