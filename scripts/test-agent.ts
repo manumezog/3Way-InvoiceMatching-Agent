@@ -22,10 +22,10 @@ async function main() {
   const { runAgent } = await import('@/lib/agent/orchestrator')
 
   runMigrations()
-  const invoices = getAllInvoices()
+  const invoices = await getAllInvoices()
 
   const scenarioId = process.argv[2] ?? 'scenario-01'
-  const inv = invoices.find(i => i.scenario_id === scenarioId)
+  const inv = invoices.find((i: { scenario_id: string | null }) => i.scenario_id === scenarioId)
   if (!inv) { console.error(`No invoice for ${scenarioId}`); process.exit(1) }
 
   console.log(`\n🤖 Testing ${scenarioId}: ${inv.invoice_number}\n`)

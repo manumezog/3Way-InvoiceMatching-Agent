@@ -165,10 +165,10 @@ async function seed() {
     const now = new Date().toISOString()
 
     // Insert PO — reuse existing if same po_number already seeded (e.g. scenario-07 duplicates scenario-01's PO)
-    const existingPO = getPOByNumber(s.purchase_order.po_number)
+    const existingPO = await getPOByNumber(s.purchase_order.po_number)
     const resolvedPoId = existingPO ? existingPO.id : poId
     if (!existingPO) {
-      insertPO({
+      await insertPO({
         id: resolvedPoId,
         po_number: s.purchase_order.po_number,
         vendor_name: s.purchase_order.vendor_name,
@@ -179,7 +179,7 @@ async function seed() {
     }
 
     // Insert WMS receipt
-    insertWmsReceipt({
+    await insertWmsReceipt({
       id: wmsId,
       po_id: resolvedPoId,
       received_at: now,
@@ -213,7 +213,7 @@ async function seed() {
     const pdfPath = await renderInvoicePdf(s.id, s.vendor_template, renderData, s.pdf_variant)
 
     // Insert invoice record
-    insertInvoice({
+    await insertInvoice({
       id: invoiceId,
       invoice_number: s.invoice.invoice_number,
       vendor_name: s.invoice.vendor_name,

@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db/client'
+import { isPostgres, getDb, getNeon } from '@/lib/db/client'
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean
@@ -7,16 +7,30 @@ export interface DuplicateCheckResult {
   detail: string
 }
 
-export function checkDuplicate(invoiceNumber: string): DuplicateCheckResult {
-  // An invoice is a duplicate if it was previously processed (has a match result)
-  const row = getDb().prepare(`
-    SELECT mr.id, mr.status
-    FROM match_results mr
-    JOIN invoices i ON i.id = mr.invoice_id
-    WHERE i.invoice_number = ?
-    ORDER BY mr.matched_at DESC
-    LIMIT 1
-  `).get(invoiceNumber) as { id: string; status: string } | undefined
+export async function checkDuplicate(invoiceNumber: string): Promise<DuplicateCheckResult> {
+  let row: { id: string; status: string } | undefined
+
+  if (isPostgres()) {
+    const sql  = getNeon()
+    const rows = await sql`
+      SELECT mr.id, mr.status
+      FROM match_results mr
+      JOIN invoices i ON i.id = mr.invoice_id
+      WHERE i.invoice_number = ${invoiceNumber}
+      ORDER BY mr.matched_at DESC
+      LIMIT 1
+    ` as { id: string; status: string }[]
+    row = rows[0]
+  } else {
+    row = getDb().prepare(`
+      SELECT mr.id, mr.status
+      FROM match_results mr
+      JOIN invoices i ON i.id = mr.invoice_id
+      WHERE i.invoice_number = ?
+      ORDER BY mr.matched_at DESC
+      LIMIT 1
+    `).get(invoiceNumber) as { id: string; status: string } | undefined
+  }
 
   if (row) {
     return {

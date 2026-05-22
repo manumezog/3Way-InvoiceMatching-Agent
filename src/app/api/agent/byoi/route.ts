@@ -211,10 +211,10 @@ export async function POST(req: NextRequest): Promise<Response> {
         const invoiceId = randomUUID()
 
         // Avoid po_number collision (edge case: same UUID prefix)
-        const existingPO = getPOByNumber(poNumber)
+        const existingPO = await getPOByNumber(poNumber)
         const resolvedPoId = existingPO ? existingPO.id : poId
         if (!existingPO) {
-          insertPO({
+          await insertPO({
             id:          resolvedPoId,
             po_number:   poNumber,
             vendor_name: extracted.vendor_name,
@@ -224,14 +224,14 @@ export async function POST(req: NextRequest): Promise<Response> {
           })
         }
 
-        insertWmsReceipt({
+        await insertWmsReceipt({
           id:          wmsId,
           po_id:       resolvedPoId,
           received_at: now,
           line_items:  synthetic.wmsLineItems,
         })
 
-        insertInvoice({
+        await insertInvoice({
           id:             invoiceId,
           invoice_number: extracted.invoice_number,
           vendor_name:    extracted.vendor_name,

@@ -77,9 +77,9 @@ export async function POST(): Promise<Response> {
   runMigrations()
 
   // Reset DB so eval runs from a clean slate
-  clearMatchResults()
+  await clearMatchResults()
 
-  const invoices = getAllInvoices()
+  const invoices = await getAllInvoices()
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
