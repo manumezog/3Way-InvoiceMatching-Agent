@@ -244,20 +244,20 @@ These are durable rules for all development on this repo:
 
 Phased plan. Each phase ends with a working, committable checkpoint.
 
-### Phase 0 — Foundation
-- [ ] Initialize Next.js 14 + TypeScript + Tailwind project
-- [ ] Set up shadcn/ui components
-- [ ] Configure ESLint, Prettier, `.gitignore`, `.env.example`
-- [ ] Initialize git, connect to GitHub repo
-- [ ] Set up SQLite + repository pattern abstraction
-- [ ] Define core data schemas (PO, WMS Receipt, Invoice, Match Result)
+### Phase 0 — Foundation ✅
+- [x] Initialize Next.js 14 + TypeScript + Tailwind project
+- [x] Set up shadcn/ui components
+- [x] Configure ESLint, `.gitignore`, `.env.example`, `.gitattributes`
+- [x] Initialize git, connect to GitHub repo
+- [x] Set up SQLite + repository pattern abstraction
+- [x] Define core data schemas (PO, WMS Receipt, Invoice, Match Result)
 
-### Phase 1 — Static UI Skeleton
-- [ ] Top nav with title and action buttons
-- [ ] Invoice gallery grid layout
-- [ ] Agent trace panel (static placeholder)
-- [ ] Decision output panel (static placeholder)
-- [ ] Empty Eval Mode tab
+### Phase 1 — Static UI Skeleton ✅
+- [x] Top nav with title and action buttons
+- [x] Invoice gallery grid (12 cards with difficulty badges + skill tags)
+- [x] Agent trace panel (animated step-by-step placeholder)
+- [x] Decision output panel (status, confidence bar, reasoning)
+- [x] Eval Mode tab with ground-truth summary stubs
 
 ### Phase 2 — Synthetic Data Pipeline
 We **generate everything ourselves** — full control over ground truth, no licensing or PII risk, tunable difficulty, and the pipeline itself becomes a portfolio signal ("built a synthetic eval dataset").
