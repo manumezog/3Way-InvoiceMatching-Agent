@@ -290,39 +290,42 @@ We **generate everything ourselves** — full control over ground truth, no lice
 - [x] Seed script: `npm run seed` → inserts 12 POs + WMS receipts + invoices, renders 12 PDFs to `/public/invoices/`
 - [x] Ground-truth labels in `data/scenarios.json` — same file feeds Eval Mode (Phase 6)
 
-### Phase 3 — Agent Tools (Individual)
-- [ ] `extract_pdf` — Gemini vision extraction with Zod schema validation
-- [ ] `lookup_po` — query PO from DB
-- [ ] `query_wms` — query WMS receipt from DB
-- [ ] `fuzzy_match_vendor` — embeddings + cosine similarity
-- [ ] `convert_currency` — FX rate lookup with cache
-- [ ] `check_duplicate` — hash-based duplicate detection
-- [ ] `reason_and_decide` — deterministic rules + LLM explanation
-- [ ] `escalate` — flag for human review
+### Phase 3 — Agent Tools (Individual) ✅
+- [x] `extract_pdf` — Gemini vision extraction with Zod schema validation
+- [x] `lookup_po` — query PO from DB
+- [x] `query_wms` — query WMS receipt from DB
+- [x] `fuzzy_match_vendor` — embeddings + cosine similarity
+- [x] `convert_currency` — FX rate lookup with 6h SQLite cache + free API fallback
+- [x] `check_duplicate` — invoice_number-based duplicate detection against match_results
+- [x] `reason_and_decide` — deterministic rule engine (shortage, price mismatch, unauthorized items, vendor mismatch, FX) + Gemini-generated natural language explanation
+- [x] `escalate` — low-confidence escalation path
+- [x] Full agent orchestrator loop (`orchestrator.ts`) with EmitFn trace event streaming
+- [x] `POST /api/agent/run` — REST endpoint wrapping the orchestrator
+- [x] `npm run test:agent <scenario-id>` — CLI smoke test runner
+- [x] Smoke-tested: scenario-01 APPROVED ✓, scenario-04 FLAGGED/SHORTAGE ✓, scenario-07 FLAGGED/DUPLICATE ✓
 
-### Phase 4 — Agent Orchestrator
-- [ ] Tool-calling loop with state management
-- [ ] Confidence scoring per decision
-- [ ] Server-Sent Events streaming of trace steps
-- [ ] Langfuse integration (every step instrumented)
-- [ ] Error handling and retry logic
+### Phase 4 — SSE Streaming & Observability ✅
+- [x] `POST /api/agent/stream` — Server-Sent Events endpoint; each trace step streamed as it fires
+- [x] Langfuse integration — optional (activates when `LANGFUSE_*` env vars set); creates one trace per run with per-step spans
+- [x] `trace_id` stored in `match_results` for Langfuse deep-link in Phase 7
+- [x] Graceful no-op when Langfuse keys are absent (dev works without them)
+- [x] SSE sentinel `{"type":"done"}` closes the stream cleanly on client side
 
 ### Phase 5 — Live UI Integration
-- [ ] Wire gallery cards to single-invoice agent run
-- [ ] Live trace panel streams real agent steps
-- [ ] Decision output reveals with animation
+- [ ] Wire gallery cards to single-invoice agent run via SSE
+- [ ] Live trace panel streams real agent steps with animation
+- [ ] Decision output reveals with animation on completion
 - [ ] "Process Today's Batch" runs all invoices sequentially with running totals
 
 ### Phase 6 — Eval Mode
-- [ ] Ground-truth labels for all 12 invoices in seed data
-- [ ] Eval runner endpoint
+- [ ] Eval runner endpoint (batch all 12 scenarios, compare to ground truth)
 - [ ] Accuracy / precision / recall / confusion matrix
 - [ ] p50 / p95 latency, cost per invoice
-- [ ] Model comparison view (Gemini Flash vs Claude Haiku vs Llama via OpenRouter)
+- [ ] Model comparison view (Gemini Flash vs alternatives via OpenRouter)
 
 ### Phase 7 — Polish & Wow Factor
-- [ ] Framer Motion animations on trace and decisions
-- [ ] Langfuse trace deep-link
+- [ ] Framer Motion animations on trace steps and decision reveal
+- [ ] Langfuse trace deep-link in result panel
 - [ ] "Adversarial Mode" toggle
 - [ ] Optional "Bring Your Own Invoice" upload (with size & MIME validation)
 - [ ] Loading states, empty states, error states

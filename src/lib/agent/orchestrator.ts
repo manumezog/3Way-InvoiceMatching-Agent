@@ -27,6 +27,7 @@ export interface AgentResult {
   explanation: string
   trace: TraceEvent[]
   durationMs: number
+  traceId: string | null
 }
 
 type EmitFn = (event: TraceEvent) => void
@@ -34,7 +35,7 @@ type EmitFn = (event: TraceEvent) => void
 // ---------------------------------------------------------------------------
 // Main agent run
 // ---------------------------------------------------------------------------
-export async function runAgent(invoiceId: string, emit: EmitFn = () => {}): Promise<AgentResult> {
+export async function runAgent(invoiceId: string, emit: EmitFn = () => {}, traceId: string | null = null): Promise<AgentResult> {
   const start = Date.now()
   const trace: TraceEvent[] = []
   runMigrations()
@@ -68,7 +69,7 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}): Prom
   const dupCheck = checkDuplicate(invoice.invoice_number)
   if (dupCheck.isDuplicate) {
     done('dup', `DUPLICATE — previously processed as ${dupCheck.previousStatus}`)
-    const result = await saveResult(invoiceId, 'FLAGGED', 'DUPLICATE', 0.99, dupCheck.detail)
+    const result = await saveResult(invoiceId, 'FLAGGED', 'DUPLICATE', 0.99, dupCheck.detail, undefined, undefined, traceId)
     return buildResult(invoiceId, result, trace, Date.now() - start)
   }
   done('dup', 'No prior record — proceeding')
@@ -95,7 +96,7 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}): Prom
   if (!po) {
     fail('po', 'No matching PO found')
     const explanation = `No purchase order found matching invoice ${extracted.invoice_number} from vendor "${extracted.vendor_name}". Cannot complete 3-way match without a PO reference.`
-    const result = await saveResult(invoiceId, 'ESCALATED', 'LOW_CONFIDENCE', 0.5, explanation)
+    const result = await saveResult(invoiceId, 'ESCALATED', 'LOW_CONFIDENCE', 0.5, explanation, undefined, undefined, traceId)
     return buildResult(invoiceId, result, trace, Date.now() - start)
   }
   done('po', `${po.po_number} — ${po.vendor_name}`)
@@ -106,7 +107,7 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}): Prom
   if (!wms) {
     fail('wms', 'No WMS receipt found for this PO')
     const explanation = `No warehouse receipt found for PO ${po.po_number}. Cannot verify quantities without a WMS record.`
-    const result = await saveResult(invoiceId, 'ESCALATED', 'LOW_CONFIDENCE', 0.5, explanation)
+    const result = await saveResult(invoiceId, 'ESCALATED', 'LOW_CONFIDENCE', 0.5, explanation, undefined, undefined, traceId)
     return buildResult(invoiceId, result, trace, Date.now() - start)
   }
   const totalReceived = wms.line_items.reduce((s, li) => s + li.received_qty, 0)
@@ -143,6 +144,7 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}): Prom
     decision.explanation,
     po.id,
     wms.id,
+    traceId,
   )
 
   return buildResult(invoiceId, result, trace, Date.now() - start)
@@ -159,6 +161,7 @@ async function saveResult(
   explanation: string,
   poId?: string,
   wmsId?: string,
+  traceId?: string | null,
 ) {
   const invoiceStatus = status === 'APPROVED' ? 'approved' : status === 'FLAGGED' ? 'flagged' : 'escalated'
   updateInvoiceStatus(invoiceId, invoiceStatus as 'approved' | 'flagged' | 'escalated')
@@ -172,7 +175,7 @@ async function saveResult(
     flag_reason: flagReason as Parameters<typeof insertMatchResult>[0]['flag_reason'],
     confidence,
     explanation,
-    trace_id: null,
+    trace_id: traceId ?? null,
     matched_at: new Date().toISOString(),
   }
   insertMatchResult(result)
@@ -193,5 +196,6 @@ function buildResult(
     explanation: result.explanation,
     trace,
     durationMs,
+    traceId: result.trace_id,
   }
 }
