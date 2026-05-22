@@ -6,8 +6,9 @@ import fs from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
 
-import { runMigrations } from '@/lib/db/migrate'
-import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber, getDb } from '@/lib/db/repo'
+import { runMigrations, runMigrationsAsync } from '@/lib/db/migrate'
+import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber } from '@/lib/db/repo'
+import { isPostgres, getDb, getNeon } from '@/lib/db/client'
 import { renderTemplate } from './templates/index'
 import { applyVariant } from './post-process'
 import type { InvoiceRenderData, TemplateKey } from './templates/index'
@@ -122,17 +123,25 @@ async function seed() {
 
   // Run DB migrations
   console.log('▸ Running migrations…')
-  runMigrations()
+  await runMigrationsAsync()
 
   // Clear existing data
   console.log('▸ Clearing existing data…')
-  const db = getDb()
-  db.exec(`
-    DELETE FROM match_results;
-    DELETE FROM invoices;
-    DELETE FROM wms_receipts;
-    DELETE FROM purchase_orders;
-  `)
+  if (isPostgres()) {
+    const sql = getNeon()
+    await sql`DELETE FROM match_results`
+    await sql`DELETE FROM invoices`
+    await sql`DELETE FROM wms_receipts`
+    await sql`DELETE FROM purchase_orders`
+  } else {
+    const db = getDb()
+    db.exec(`
+      DELETE FROM match_results;
+      DELETE FROM invoices;
+      DELETE FROM wms_receipts;
+      DELETE FROM purchase_orders;
+    `)
+  }
 
   // Load scenarios
   const scenarios = JSON.parse(fs.readFileSync(SCENARIOS_PATH, 'utf-8')) as Array<{
