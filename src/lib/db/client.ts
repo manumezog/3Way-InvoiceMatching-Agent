@@ -1,21 +1,39 @@
-import Database from 'better-sqlite3'
 import path from 'path'
-import fs from 'fs'
 
-let db: Database.Database | null = null
+// Returns true when DATABASE_URL points to a Postgres/Neon connection string
+export function isPostgres(): boolean {
+  const url = process.env.DATABASE_URL ?? ''
+  return url.startsWith('postgres://') || url.startsWith('postgresql://')
+}
 
-export function getDb(): Database.Database {
-  if (db) return db
+// SQLite singleton — only used in local dev
+let _sqlite: import('better-sqlite3').Database | null = null
+
+export function getDb(): import('better-sqlite3').Database {
+  if (_sqlite) return _sqlite
+
+  // Avoid importing better-sqlite3 in production (it's a native module not
+  // available in Vercel's runtime).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Database = require('better-sqlite3') as typeof import('better-sqlite3')
+  const fs       = require('fs')  as typeof import('fs')
 
   const dbPath = process.env.DATABASE_URL ?? path.join(process.cwd(), 'data', 'fastpay.db')
-
-  // Ensure data directory exists
-  const dir = path.dirname(dbPath)
+  const dir    = path.dirname(dbPath)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 
-  db = new Database(dbPath)
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
+  _sqlite = new Database(dbPath)
+  _sqlite.pragma('journal_mode = WAL')
+  _sqlite.pragma('foreign_keys = ON')
+  return _sqlite
+}
 
-  return db
+// Neon client singleton — used in production (Vercel)
+let _neon: ReturnType<typeof import('@neondatabase/serverless').neon> | null = null
+
+export function getNeon() {
+  if (_neon) return _neon
+  const { neon } = require('@neondatabase/serverless') as typeof import('@neondatabase/serverless')
+  _neon = neon(process.env.DATABASE_URL!)
+  return _neon
 }

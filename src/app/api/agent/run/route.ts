@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const { scenarioId } = parsed.data
 
   // Find invoice by scenario_id
-  const invoices = getAllInvoices()
+  const invoices = await getAllInvoices()
   const invoice = invoices.find(inv => inv.scenario_id === scenarioId)
   if (!invoice) {
     return NextResponse.json({ error: `No invoice found for scenario ${scenarioId}` }, { status: 404 })

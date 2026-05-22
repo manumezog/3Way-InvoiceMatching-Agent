@@ -327,12 +327,13 @@ We **generate everything ourselves** — full control over ground truth, no lice
 - [x] Fixed embedding model: `text-embedding-004` → `gemini-embedding-001` (correct model ID for v1 API keys)
 - [x] Baseline result: **73% accuracy (8/11)** — 3 documented gaps: ESCALATED scenarios misclassified (handwriting detection not yet implemented), fuzzy vendor threshold edge case, transient model 503
 
-### Phase 7 — Polish & Wow Factor
-- [ ] Framer Motion animations on trace steps and decision reveal
-- [ ] Langfuse trace deep-link in result panel
+### Phase 7 — Polish & Wow Factor ✅
+- [x] Real invoice thumbnails in gallery cards (Puppeteer crop → JPEG, icon fallback)
+- [x] Framer Motion animations on trace steps and decision reveal
+- [x] Langfuse trace deep-link in result panel
+- [x] Loading states, empty states, error states (AnimatePresence transitions)
+- [x] "Bring Your Own Invoice" upload — synthetic PO+WMS generated with injected discrepancy; supports PDF/JPEG/PNG/WEBP up to 10 MB
 - [ ] "Adversarial Mode" toggle
-- [ ] Optional "Bring Your Own Invoice" upload (with size & MIME validation)
-- [ ] Loading states, empty states, error states
 
 ### Phase 8 — Abuse Protection, CI/CD & Deployment
 - [ ] Upstash Redis rate limiting middleware

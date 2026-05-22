@@ -6,10 +6,18 @@ import { getLangfuse } from '@/lib/agent/langfuse'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request): Promise<Response> {
-  const { scenarioId } = await req.json()
+  let body: unknown
+  try { body = await req.json() } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const scenarioId = (body as Record<string, unknown>)?.scenarioId
+  if (typeof scenarioId !== 'string' || !/^scenario-\d{2}$/.test(scenarioId)) {
+    return Response.json({ error: 'Invalid scenarioId' }, { status: 400 })
+  }
 
   runMigrations()
-  const invoices = getAllInvoices()
+  const invoices = await getAllInvoices()
   const invoice = invoices.find(i => i.scenario_id === scenarioId)
   if (!invoice) {
     return Response.json({ error: `No invoice for scenario ${scenarioId}` }, { status: 404 })

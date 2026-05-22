@@ -6,7 +6,7 @@ export async function lookupPo(poNumber: string): Promise<PurchaseOrder | null> 
 }
 
 export async function lookupPoByVendor(vendorName: string): Promise<PurchaseOrder[]> {
-  const all = getAllPOs()
+  const all = await getAllPOs()
   return all.filter(po =>
     po.vendor_name.toLowerCase().includes(vendorName.toLowerCase())
   )

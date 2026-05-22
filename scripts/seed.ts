@@ -1,12 +1,14 @@
 import puppeteer from 'puppeteer'
 import { PDFDocument } from 'pdf-lib'
+import sharp from 'sharp'
 import { faker } from '@faker-js/faker'
 import fs from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
 
-import { runMigrations } from '@/lib/db/migrate'
-import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber, getDb } from '@/lib/db/repo'
+import { runMigrations, runMigrationsAsync } from '@/lib/db/migrate'
+import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber } from '@/lib/db/repo'
+import { isPostgres, getDb, getNeon } from '@/lib/db/client'
 import { renderTemplate } from './templates/index'
 import { applyVariant } from './post-process'
 import type { InvoiceRenderData, TemplateKey } from './templates/index'
@@ -16,7 +18,8 @@ import type { PdfVariant } from '@/data/scenarios-static'
 faker.seed(20240101)
 
 const SCENARIOS_PATH = path.join(process.cwd(), 'data', 'scenarios.json')
-const INVOICES_OUT = path.join(process.cwd(), 'public', 'invoices')
+const INVOICES_OUT   = path.join(process.cwd(), 'public', 'invoices')
+const THUMBS_OUT     = path.join(process.cwd(), 'public', 'thumbnails')
 
 const VENDOR_META: Record<string, { address: string; email: string; phone: string }> = {
   'Apex Logistics':       { address: '1420 Harbor Blvd, Los Angeles CA 90021', email: 'ar@apexlogistics.com',        phone: '+1 213-555-0192' },
@@ -94,29 +97,51 @@ async function renderInvoicePdf(
 
   const outPath = path.join(INVOICES_OUT, `${scenarioId}.pdf`)
   fs.writeFileSync(outPath, pdfBuffer)
-  console.log(`  ✓ ${scenarioId}.pdf (${variant})`)
+
+  // Thumbnail: 480px wide, crop the top ~28% of the page (shows header with logo + invoice number)
+  const thumbBuffer = await sharp(processed)
+    .resize({ width: 480 })
+    .toBuffer()
+  const meta = await sharp(thumbBuffer).metadata()
+  const cropHeight = Math.round((meta.height ?? 280) * 0.28)
+  const finalThumb = await sharp(thumbBuffer)
+    .extract({ left: 0, top: 0, width: 480, height: Math.max(cropHeight, 160) })
+    .jpeg({ quality: 88 })
+    .toBuffer()
+  fs.writeFileSync(path.join(THUMBS_OUT, `${scenarioId}.jpg`), finalThumb)
+
+  console.log(`  ✓ ${scenarioId}.pdf + thumbnail (${variant})`)
   return `/invoices/${scenarioId}.pdf`
 }
 
 async function seed() {
   console.log('\n🌱 FastPay AI — Seed Script\n')
 
-  // Ensure output directory exists
+  // Ensure output directories exist
   fs.mkdirSync(INVOICES_OUT, { recursive: true })
+  fs.mkdirSync(THUMBS_OUT, { recursive: true })
 
   // Run DB migrations
   console.log('▸ Running migrations…')
-  runMigrations()
+  await runMigrationsAsync()
 
   // Clear existing data
   console.log('▸ Clearing existing data…')
-  const db = getDb()
-  db.exec(`
-    DELETE FROM match_results;
-    DELETE FROM invoices;
-    DELETE FROM wms_receipts;
-    DELETE FROM purchase_orders;
-  `)
+  if (isPostgres()) {
+    const sql = getNeon()
+    await sql`DELETE FROM match_results`
+    await sql`DELETE FROM invoices`
+    await sql`DELETE FROM wms_receipts`
+    await sql`DELETE FROM purchase_orders`
+  } else {
+    const db = getDb()
+    db.exec(`
+      DELETE FROM match_results;
+      DELETE FROM invoices;
+      DELETE FROM wms_receipts;
+      DELETE FROM purchase_orders;
+    `)
+  }
 
   // Load scenarios
   const scenarios = JSON.parse(fs.readFileSync(SCENARIOS_PATH, 'utf-8')) as Array<{
@@ -149,10 +174,10 @@ async function seed() {
     const now = new Date().toISOString()
 
     // Insert PO — reuse existing if same po_number already seeded (e.g. scenario-07 duplicates scenario-01's PO)
-    const existingPO = getPOByNumber(s.purchase_order.po_number)
+    const existingPO = await getPOByNumber(s.purchase_order.po_number)
     const resolvedPoId = existingPO ? existingPO.id : poId
     if (!existingPO) {
-      insertPO({
+      await insertPO({
         id: resolvedPoId,
         po_number: s.purchase_order.po_number,
         vendor_name: s.purchase_order.vendor_name,
@@ -163,7 +188,7 @@ async function seed() {
     }
 
     // Insert WMS receipt
-    insertWmsReceipt({
+    await insertWmsReceipt({
       id: wmsId,
       po_id: resolvedPoId,
       received_at: now,
@@ -197,7 +222,7 @@ async function seed() {
     const pdfPath = await renderInvoicePdf(s.id, s.vendor_template, renderData, s.pdf_variant)
 
     // Insert invoice record
-    insertInvoice({
+    await insertInvoice({
       id: invoiceId,
       invoice_number: s.invoice.invoice_number,
       vendor_name: s.invoice.vendor_name,

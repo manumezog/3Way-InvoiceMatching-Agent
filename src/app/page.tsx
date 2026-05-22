@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { Navbar } from '@/components/dashboard/Navbar'
 import { ActionBar, type BatchStats } from '@/components/dashboard/ActionBar'
 import { InvoiceGallery } from '@/components/gallery/InvoiceGallery'
 import { TracePanel, type TraceStep } from '@/components/agent/TracePanel'
 import { DecisionOutput, type DecisionResult } from '@/components/agent/DecisionOutput'
 import { EvalDashboard } from '@/components/eval/EvalDashboard'
+import { UploadModal } from '@/components/byoi/UploadModal'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
@@ -87,6 +89,7 @@ export default function Home() {
   const [decisionResult, setDecisionResult] = useState<DecisionResult | null>(null)
   const [isRunning, setIsRunning]           = useState(false)
   const [batchStats, setBatchStats]         = useState<BatchStats | undefined>(undefined)
+  const [showUpload, setShowUpload]         = useState(false)
 
   // Update a step in-place if it already exists (running → done), otherwise append
   const applyStep = useCallback((event: TraceStep) => {
@@ -176,11 +179,14 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950">
+      <AnimatePresence>
+        {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
+      </AnimatePresence>
       <Navbar />
       <ActionBar
         onRunBatch={runBatch}
         onEvalMode={() => setActiveTab('eval')}
-        onUpload={() => alert('Upload coming in Phase 7!')}
+        onUpload={() => setShowUpload(true)}
         isRunning={isRunning}
         batchStats={batchStats}
       />

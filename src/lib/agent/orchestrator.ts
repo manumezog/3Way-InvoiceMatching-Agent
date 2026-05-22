@@ -7,7 +7,7 @@ import {
 } from './tools/index'
 
 // ---------------------------------------------------------------------------
-// Trace event — streamed to the UI via SSE in Phase 4
+// Trace event — streamed to the UI via SSE
 // ---------------------------------------------------------------------------
 export type TraceEventStatus = 'running' | 'done' | 'error'
 
@@ -60,13 +60,13 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}, trace
 
   // --- Step 1: Load invoice record ---
   step('load', 'load_invoice()', `id: ${invoiceId}`)
-  const invoice = getInvoiceById(invoiceId)
+  const invoice = await getInvoiceById(invoiceId)
   if (!invoice) throw new Error(`Invoice not found: ${invoiceId}`)
   done('load', `${invoice.invoice_number} — ${invoice.pdf_path}`)
 
   // --- Step 2: Duplicate check (fast, no API) ---
   step('dup', 'check_duplicate()', invoice.invoice_number)
-  const dupCheck = checkDuplicate(invoice.invoice_number)
+  const dupCheck = await checkDuplicate(invoice.invoice_number)
   if (dupCheck.isDuplicate) {
     done('dup', `DUPLICATE — previously processed as ${dupCheck.previousStatus}`)
     const result = await saveResult(invoiceId, 'FLAGGED', 'DUPLICATE', 0.99, dupCheck.detail, undefined, undefined, traceId)
@@ -89,7 +89,6 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}, trace
   step('po', `lookup_po("${extracted.po_reference ?? 'by vendor'}")`)
   let po = extracted.po_reference ? await lookupPo(extracted.po_reference) : null
   if (!po) {
-    // Fallback: search by vendor name
     const candidates = await lookupPoByVendor(extracted.vendor_name)
     po = candidates[0] ?? null
   }
@@ -164,7 +163,7 @@ async function saveResult(
   traceId?: string | null,
 ) {
   const invoiceStatus = status === 'APPROVED' ? 'approved' : status === 'FLAGGED' ? 'flagged' : 'escalated'
-  updateInvoiceStatus(invoiceId, invoiceStatus as 'approved' | 'flagged' | 'escalated')
+  await updateInvoiceStatus(invoiceId, invoiceStatus as 'approved' | 'flagged' | 'escalated')
 
   const result = {
     id: randomUUID(),
@@ -178,7 +177,7 @@ async function saveResult(
     trace_id: traceId ?? null,
     matched_at: new Date().toISOString(),
   }
-  insertMatchResult(result)
+  await insertMatchResult(result)
   return result
 }
 

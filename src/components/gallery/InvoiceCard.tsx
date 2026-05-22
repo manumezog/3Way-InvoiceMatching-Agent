@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { FileText, Camera, ScanLine, PenLine, Layers } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -11,24 +12,24 @@ interface InvoiceCardProps {
   scenario: StaticScenario
   isSelected: boolean
   isRunning: boolean
-  result?: MatchStatus       // actual agent result (undefined = not yet run)
+  result?: MatchStatus
   onClick: () => void
 }
 
 const VARIANT_ICON: Record<PdfVariant, React.ElementType> = {
-  clean: FileText,
-  scanned: ScanLine,
-  photo: Camera,
+  clean:       FileText,
+  scanned:     ScanLine,
+  photo:       Camera,
   handwritten: PenLine,
-  crumpled: Layers,
+  crumpled:    Layers,
 }
 
 const VARIANT_LABEL: Record<PdfVariant, string> = {
-  clean: 'Digital PDF',
-  scanned: 'Scanned',
-  photo: 'Phone Photo',
+  clean:       'Digital PDF',
+  scanned:     'Scanned',
+  photo:       'Phone Photo',
   handwritten: 'Handwritten',
-  crumpled: 'Crumpled',
+  crumpled:    'Crumpled',
 }
 
 const DIFFICULTY_STYLES = {
@@ -44,8 +45,10 @@ const RESULT_DOT: Record<MatchStatus, string> = {
 }
 
 export function InvoiceCard({ scenario, isSelected, isRunning, result, onClick }: InvoiceCardProps) {
+  const [thumbError, setThumbError] = useState(false)
   const Icon = VARIANT_ICON[scenario.pdf_variant]
   const isDone = result !== undefined
+  const thumbSrc = `/thumbnails/${scenario.id}.jpg`
 
   return (
     <button
@@ -55,35 +58,53 @@ export function InvoiceCard({ scenario, isSelected, isRunning, result, onClick }
         'group relative flex w-full flex-col rounded-xl border p-0 text-left transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
         isSelected
-          ? 'border-emerald-500/50 bg-zinc-800/80 shadow-lg shadow-emerald-500/5'
+          ? 'border-emerald-500/60 bg-zinc-800/80 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/20'
           : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800/60',
         isRunning && 'cursor-not-allowed',
       )}
     >
-      {/* Thumbnail area */}
+      {/* Thumbnail / icon area */}
       <div className={cn(
-        'relative flex h-28 w-full items-center justify-center rounded-t-xl',
-        'border-b border-zinc-800 bg-zinc-950/60',
+        'relative h-28 w-full overflow-hidden rounded-t-xl border-b border-zinc-800',
         isRunning && 'animate-pulse',
       )}>
-        <Icon className={cn(
-          'h-10 w-10 transition-colors',
-          isSelected ? 'text-emerald-400' : 'text-zinc-600 group-hover:text-zinc-500',
-        )} />
+        {/* Actual invoice thumbnail */}
+        {!thumbError ? (
+          <img
+            src={thumbSrc}
+            alt={scenario.title}
+            onError={() => setThumbError(true)}
+            className={cn(
+              'h-full w-full object-cover object-top transition-all duration-300',
+              isSelected ? 'brightness-110' : 'brightness-75 group-hover:brightness-90',
+            )}
+          />
+        ) : (
+          // Fallback icon if thumbnail not generated yet
+          <div className="flex h-full w-full items-center justify-center bg-zinc-950/60">
+            <Icon className={cn(
+              'h-10 w-10 transition-colors',
+              isSelected ? 'text-emerald-400' : 'text-zinc-600 group-hover:text-zinc-500',
+            )} />
+          </div>
+        )}
+
+        {/* Gradient overlay — blends thumbnail into card body */}
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-zinc-900 via-zinc-900/60 to-transparent" />
 
         {/* Running spinner overlay */}
         {isRunning && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-t-xl bg-zinc-950/60">
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/70">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
           </div>
         )}
 
         {/* Variant label */}
-        <span className="absolute bottom-2 left-2 text-[10px] font-medium text-zinc-600">
+        <span className="absolute bottom-2 left-2 text-[10px] font-medium text-zinc-400 drop-shadow">
           {VARIANT_LABEL[scenario.pdf_variant]}
         </span>
 
-        {/* Result dot — shows actual agent outcome, not ground truth */}
+        {/* Result dot — actual agent outcome */}
         {isDone && (
           <div className={cn(
             'absolute right-2 top-2 h-2.5 w-2.5 rounded-full ring-2 ring-zinc-900',

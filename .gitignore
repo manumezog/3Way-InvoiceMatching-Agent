@@ -37,10 +37,14 @@ yarn-error.log*
 # local database (but keep scenarios.json which is source-of-truth)
 /data/*.db
 /data/*.sqlite
+/data/*.db-shm
+/data/*.db-wal
 
-# generated invoice PDFs (reproduced by seed script)
+# generated assets (reproduced by seed script)
 /public/invoices/*.pdf
 /public/invoices/*.png
+/public/invoices/byoi-*
+/public/thumbnails/
 
 # vercel
 .vercel
