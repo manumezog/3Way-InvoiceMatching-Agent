@@ -34,10 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local database
-/data/
-*.db
-*.sqlite
+# local database (but keep scenarios.json which is source-of-truth)
+/data/*.db
+/data/*.sqlite
 
 # generated invoice PDFs (reproduced by seed script)
 /public/invoices/*.pdf

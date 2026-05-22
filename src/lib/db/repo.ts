@@ -1,3 +1,4 @@
+export { getDb } from './client'
 import { getDb } from './client'
 import type {
   PurchaseOrder,
