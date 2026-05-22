@@ -13,5 +13,5 @@ export function getFlashModel() {
 }
 
 export function getEmbeddingModel() {
-  return getGemini().getGenerativeModel({ model: 'text-embedding-004' })
+  return getGemini().getGenerativeModel({ model: 'gemini-embedding-001' })
 }

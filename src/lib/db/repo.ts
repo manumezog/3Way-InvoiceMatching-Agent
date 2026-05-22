@@ -117,6 +117,12 @@ export function getInvoiceByHash(hash: string): Invoice | null {
 // Match Results
 // ---------------------------------------------------------------------------
 
+export function clearMatchResults(): void {
+  getDb().prepare('DELETE FROM match_results').run()
+  // Also reset invoice statuses so the agent processes them fresh
+  getDb().prepare("UPDATE invoices SET status = 'pending'").run()
+}
+
 export function insertMatchResult(result: MatchResult): void {
   getDb().prepare(`
     INSERT OR REPLACE INTO match_results
