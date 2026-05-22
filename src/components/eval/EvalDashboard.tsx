@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { FlaskConical, Play, CheckCircle2, XCircle, Minus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FlaskConical, Play, CheckCircle2, XCircle, Minus, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
 import { cn } from '@/lib/utils'
@@ -10,22 +11,17 @@ import type { EvalMetrics, EvalRun } from '@/app/api/eval/run/route'
 type MatchStatus = 'APPROVED' | 'FLAGGED' | 'ESCALATED'
 
 // ---------------------------------------------------------------------------
-// SSE consumer for eval stream
+// SSE consumer
 // ---------------------------------------------------------------------------
-interface ProgressState {
-  done: number
-  total: number
-  currentTitle: string
-}
+interface ProgressState { done: number; total: number }
 
 async function streamEval(
   onProgress: (p: ProgressState) => void,
-  onResult: (r: EvalRun) => void,
+  onResult:   (r: EvalRun) => void,
   onComplete: (m: EvalMetrics) => void,
 ): Promise<void> {
   const res = await fetch('/api/eval/run', { method: 'POST' })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  if (!res.body) throw new Error('No response body')
+  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
 
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
@@ -42,8 +38,8 @@ async function streamEval(
       if (!line.startsWith('data: ')) continue
       try {
         const data = JSON.parse(line.slice(6))
-        if (data.type === 'progress') onProgress({ done: data.done, total: data.total, currentTitle: data.title })
-        else if (data.type === 'result') onResult(data as EvalRun)
+        if      (data.type === 'progress') onProgress({ done: data.done, total: data.total })
+        else if (data.type === 'result')   onResult(data as EvalRun)
         else if (data.type === 'complete') onComplete(data.metrics as EvalMetrics)
       } catch { /* skip malformed */ }
     }
@@ -53,162 +49,232 @@ async function streamEval(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+function pct(n: number) { return `${Math.round(n * 100)}%` }
+function ms(n: number)  { return n < 1000 ? `${Math.round(n)}ms` : `${(n / 1000).toFixed(1)}s` }
+
 const STATUS_COLOR: Record<MatchStatus, string> = {
   APPROVED:  'text-emerald-400',
   FLAGGED:   'text-red-400',
   ESCALATED: 'text-amber-400',
 }
 
-const STATUS_BG: Record<MatchStatus, string> = {
-  APPROVED:  'bg-emerald-500/10',
-  FLAGGED:   'bg-red-500/10',
-  ESCALATED: 'bg-amber-500/10',
+const STATUS_CHIP: Record<MatchStatus, string> = {
+  APPROVED:  'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/20',
+  FLAGGED:   'bg-red-500/15 text-red-300 ring-1 ring-red-500/20',
+  ESCALATED: 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/20',
 }
 
-function pct(n: number) { return `${Math.round(n * 100)}%` }
-function ms(n: number)  { return n < 1000 ? `${Math.round(n)}ms` : `${(n / 1000).toFixed(1)}s` }
-
 // ---------------------------------------------------------------------------
-// Sub-components
+// Stat chip — compact secondary metric
 // ---------------------------------------------------------------------------
-function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-      <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className="text-2xl font-bold text-zinc-100">{value}</p>
-      {sub && <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>}
+    <div className="flex flex-col items-center gap-0.5 rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-3">
+      <span className="text-xl font-bold text-white">{value}</span>
+      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{label}</span>
     </div>
   )
 }
 
+// ---------------------------------------------------------------------------
+// Accuracy hero
+// ---------------------------------------------------------------------------
+function AccuracyHero({ correct, total, accuracy }: { correct: number; total: number; accuracy: number }) {
+  const pctNum = Math.round(accuracy * 100)
+  const color  = pctNum >= 80 ? 'text-emerald-400' : pctNum >= 60 ? 'text-amber-400' : 'text-red-400'
+  const ring   = pctNum >= 80 ? 'ring-emerald-500/30' : pctNum >= 60 ? 'ring-amber-500/30' : 'ring-red-500/30'
+
+  return (
+    <div className={cn('flex flex-col items-center justify-center gap-1 rounded-xl border border-zinc-800 bg-zinc-900 px-8 py-5 ring-1', ring)}>
+      <motion.span
+        key={pctNum}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className={cn('text-5xl font-black tabular-nums', color)}
+      >
+        {pctNum}%
+      </motion.span>
+      <span className="text-xs font-medium text-zinc-400">Accuracy</span>
+      <span className="mt-1 text-[11px] text-zinc-500">
+        <span className="font-semibold text-zinc-300">{correct}</span>/{total} correct
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Confusion matrix
+// ---------------------------------------------------------------------------
 function ConfusionMatrix({ matrix }: { matrix: EvalMetrics['confusionMatrix'] }) {
   const classes: MatchStatus[] = ['APPROVED', 'FLAGGED', 'ESCALATED']
   const short: Record<MatchStatus, string> = { APPROVED: 'APR', FLAGGED: 'FLG', ESCALATED: 'ESC' }
-  const max = Math.max(...classes.flatMap(a => classes.map(p => matrix[a][p])))
+  const max = Math.max(1, ...classes.flatMap(a => classes.map(p => matrix[a][p])))
+
+  const diagBg   = (count: number) => count === 0 ? '' : `rgba(16,185,129,${0.08 + (count / max) * 0.25})`
+  const offBg    = (count: number) => count === 0 ? '' : `rgba(239,68,68,${0.08 + (count / max) * 0.30})`
 
   return (
     <div>
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-        Confusion Matrix <span className="normal-case text-zinc-700">(rows = actual, cols = predicted)</span>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+        Confusion Matrix
+        <span className="ml-1.5 normal-case font-normal text-zinc-700">rows = actual · cols = predicted</span>
       </p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-center text-xs">
-          <thead>
-            <tr>
-              <th className="p-2 text-left text-[10px] text-zinc-600">actual \ pred</th>
-              {classes.map(c => (
-                <th key={c} className={cn('p-2 text-[10px] font-semibold', STATUS_COLOR[c])}>{short[c]}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {classes.map(actual => (
-              <tr key={actual}>
-                <td className={cn('p-2 text-left text-[10px] font-semibold', STATUS_COLOR[actual])}>{short[actual]}</td>
-                {classes.map(pred => {
-                  const count = matrix[actual][pred]
-                  const isDiag = actual === pred
-                  const intensity = max > 0 ? count / max : 0
-                  return (
-                    <td
-                      key={pred}
-                      className={cn(
-                        'p-2 font-mono text-sm font-bold',
-                        isDiag
-                          ? count > 0 ? 'text-emerald-400' : 'text-zinc-700'
-                          : count > 0 ? 'text-red-400' : 'text-zinc-800',
-                      )}
-                      style={{ opacity: count > 0 ? 0.4 + intensity * 0.6 : 1 }}
-                    >
-                      {count}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function PerClassTable({ perClass }: { perClass: EvalMetrics['perClass'] }) {
-  const classes: MatchStatus[] = ['APPROVED', 'FLAGGED', 'ESCALATED']
-  return (
-    <div>
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">Per-Class Metrics</p>
-      <table className="w-full text-xs">
+      <table className="w-full text-center text-sm">
         <thead>
-          <tr className="border-b border-zinc-800">
-            <th className="pb-2 text-left text-[10px] text-zinc-600">Class</th>
-            <th className="pb-2 text-right text-[10px] text-zinc-600">Support</th>
-            <th className="pb-2 text-right text-[10px] text-zinc-600">Precision</th>
-            <th className="pb-2 text-right text-[10px] text-zinc-600">Recall</th>
-            <th className="pb-2 text-right text-[10px] text-zinc-600">F1</th>
+          <tr>
+            <th className="pb-2 pr-3 text-left text-[10px] text-zinc-700" />
+            {classes.map(c => (
+              <th key={c} className={cn('pb-2 text-xs font-bold', STATUS_COLOR[c])}>{short[c]}</th>
+            ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-900">
-          {classes.map(cls => {
-            const m = perClass[cls]
-            return (
-              <tr key={cls}>
-                <td className={cn('py-2 font-semibold', STATUS_COLOR[cls])}>{cls}</td>
-                <td className="py-2 text-right font-mono text-zinc-500">{m.support}</td>
-                <td className="py-2 text-right font-mono text-zinc-300">{pct(m.precision)}</td>
-                <td className="py-2 text-right font-mono text-zinc-300">{pct(m.recall)}</td>
-                <td className="py-2 text-right font-mono text-zinc-100 font-bold">{pct(m.f1)}</td>
-              </tr>
-            )
-          })}
+        <tbody>
+          {classes.map(actual => (
+            <tr key={actual}>
+              <td className={cn('py-1.5 pr-3 text-left text-xs font-bold', STATUS_COLOR[actual])}>{short[actual]}</td>
+              {classes.map(pred => {
+                const count  = matrix[actual][pred]
+                const isDiag = actual === pred
+                return (
+                  <td key={pred} className="py-1 px-1">
+                    <div
+                      className="mx-auto flex h-10 w-14 items-center justify-center rounded-lg text-base font-black"
+                      style={{ background: isDiag ? diagBg(count) : offBg(count) }}
+                    >
+                      <span className={cn(
+                        isDiag
+                          ? count > 0 ? 'text-emerald-300' : 'text-zinc-700'
+                          : count > 0 ? 'text-red-400'     : 'text-zinc-800',
+                      )}>
+                        {count}
+                      </span>
+                    </div>
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   )
 }
 
+// ---------------------------------------------------------------------------
+// Per-class table with mini F1 bar
+// ---------------------------------------------------------------------------
+function PerClassTable({ perClass }: { perClass: EvalMetrics['perClass'] }) {
+  const classes: MatchStatus[] = ['APPROVED', 'FLAGGED', 'ESCALATED']
+  const barColor: Record<MatchStatus, string> = {
+    APPROVED:  'bg-emerald-500',
+    FLAGGED:   'bg-red-500',
+    ESCALATED: 'bg-amber-500',
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Per-Class Metrics</p>
+      <div className="space-y-3">
+        {classes.map(cls => {
+          const m = perClass[cls]
+          return (
+            <div key={cls} className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className={cn('text-xs font-bold', STATUS_COLOR[cls])}>{cls}</span>
+                <span className="text-[10px] text-zinc-600">{m.support} sample{m.support !== 1 ? 's' : ''}</span>
+              </div>
+              {/* F1 bar */}
+              <div className="mb-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                <motion.div
+                  className={cn('h-full rounded-full', barColor[cls])}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.round(m.f1 * 100)}%` }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-zinc-500">
+                <span>P <span className="text-zinc-300 font-medium">{pct(m.precision)}</span></span>
+                <span>R <span className="text-zinc-300 font-medium">{pct(m.recall)}</span></span>
+                <span>F1 <span className="font-bold text-white">{pct(m.f1)}</span></span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Per-scenario results
+// ---------------------------------------------------------------------------
 function RunsTable({ runs }: { runs: EvalRun[] }) {
   return (
     <div>
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">Per-Scenario Results</p>
-      <div className="space-y-1">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Per-Scenario Results</p>
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {STATIC_SCENARIOS.map(scenario => {
-          const run = runs.find(r => r.scenarioId === scenario.id)
+          const run      = runs.find(r => r.scenarioId === scenario.id)
+          const isPending = !run
+          const isCorrect = run?.correct
+
           return (
-            <div key={scenario.id} className="flex items-center gap-2 rounded-lg bg-zinc-950/40 px-3 py-2">
-              {/* Pass/fail icon */}
+            <motion.div
+              key={scenario.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className={cn(
+                'flex items-center gap-2.5 rounded-lg border px-3 py-2.5',
+                isPending
+                  ? 'border-zinc-800/60 bg-zinc-950/30'
+                  : isCorrect
+                    ? 'border-emerald-900/40 bg-emerald-950/20'
+                    : 'border-red-900/40 bg-red-950/15',
+              )}
+            >
+              {/* Icon */}
               <span className="shrink-0">
-                {!run ? (
-                  <Minus className="h-3.5 w-3.5 text-zinc-700" />
-                ) : run.correct ? (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                ) : (
-                  <XCircle className="h-3.5 w-3.5 text-red-500" />
-                )}
+                {isPending
+                  ? <Minus className="h-3.5 w-3.5 text-zinc-700" />
+                  : isCorrect
+                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    : <XCircle className="h-3.5 w-3.5 text-red-500" />}
               </span>
 
               {/* Title */}
               <span className="min-w-0 flex-1 truncate text-xs text-zinc-300">{scenario.title}</span>
 
-              {/* Expected */}
-              <span className={cn('text-[10px]', run ? STATUS_COLOR[scenario.ground_truth] : 'text-zinc-600')}>
-                {scenario.ground_truth}
-              </span>
+              {/* Status chip(s) */}
+              <div className="flex shrink-0 items-center gap-1">
+                {run && run.actual !== run.expected ? (
+                  <>
+                    <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[scenario.ground_truth as MatchStatus])}>
+                      {scenario.ground_truth}
+                    </span>
+                    <ArrowRight className="h-3 w-3 text-zinc-600" />
+                    <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[run.actual as MatchStatus])}>
+                      {run.actual}
+                    </span>
+                  </>
+                ) : (
+                  <span className={cn(
+                    'rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                    run ? STATUS_CHIP[scenario.ground_truth as MatchStatus] : 'text-zinc-600',
+                  )}>
+                    {scenario.ground_truth}
+                  </span>
+                )}
+              </div>
 
-              {run && run.actual !== run.expected && (
-                <>
-                  <span className="text-[10px] text-zinc-700">→</span>
-                  <span className={cn('text-[10px] font-semibold', STATUS_COLOR[run.actual])}>{run.actual}</span>
-                </>
-              )}
-
-              {/* Confidence + latency */}
+              {/* Confidence · latency */}
               {run && (
-                <span className="ml-1 shrink-0 font-mono text-[10px] text-zinc-600">
+                <span className="shrink-0 font-mono text-[10px] text-zinc-600">
                   {pct(run.confidence)} · {ms(run.durationMs)}
                 </span>
               )}
-            </div>
+            </motion.div>
           )
         })}
       </div>
@@ -220,26 +286,26 @@ function RunsTable({ runs }: { runs: EvalRun[] }) {
 // Main dashboard
 // ---------------------------------------------------------------------------
 export function EvalDashboard() {
-  const [isRunning, setIsRunning]   = useState(false)
-  const [progress, setProgress]     = useState<ProgressState | null>(null)
-  const [partialRuns, setPartialRuns] = useState<EvalRun[]>([])
-  const [metrics, setMetrics]       = useState<EvalMetrics | null>(null)
+  const [isRunning,    setIsRunning]    = useState(false)
+  const [progress,     setProgress]     = useState<ProgressState | null>(null)
+  const [partialRuns,  setPartialRuns]  = useState<EvalRun[]>([])
+  const [metrics,      setMetrics]      = useState<EvalMetrics | null>(null)
 
   const runEval = useCallback(async () => {
     if (isRunning) return
     setIsRunning(true)
-    setProgress({ done: 0, total: STATIC_SCENARIOS.length, currentTitle: '' })
+    setProgress({ done: 0, total: STATIC_SCENARIOS.length })
     setPartialRuns([])
     setMetrics(null)
 
     try {
       await streamEval(
-        (p) => setProgress(p),
-        (r) => {
+        p  => setProgress(p),
+        r  => {
           setPartialRuns(prev => [...prev, r])
-          setProgress(prev => prev ? { ...prev, done: prev.done + 1, currentTitle: '' } : prev)
+          setProgress(prev => prev ? { ...prev, done: prev.done + 1 } : prev)
         },
-        (m) => setMetrics(m),
+        m  => setMetrics(m),
       )
     } catch (err) {
       console.error('Eval failed:', err)
@@ -251,14 +317,15 @@ export function EvalDashboard() {
   const runsToShow = metrics?.runs ?? partialRuns
 
   return (
-    <div className="space-y-6">
-      {/* Header row */}
+    <div className="space-y-5">
+
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <FlaskConical className="h-5 w-5 text-zinc-500" />
-          <h2 className="text-sm font-semibold text-zinc-300">Eval Mode</h2>
+          <h2 className="text-sm font-semibold text-zinc-200">Eval Mode</h2>
           {metrics && (
-            <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 ring-1 ring-emerald-500/20">
               {metrics.correct}/{metrics.total} correct
             </span>
           )}
@@ -274,77 +341,96 @@ export function EvalDashboard() {
         </Button>
       </div>
 
-      {/* Progress bar */}
-      {isRunning && progress && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="text-zinc-400">
-              {progress.done < progress.total
-                ? `Running scenario ${progress.done + 1}/${progress.total}…`
-                : 'Computing metrics…'}
-            </span>
-            <span className="font-mono text-zinc-600">{progress.done}/{progress.total}</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${(progress.done / progress.total) * 100}%` }}
-            />
-          </div>
-          {runsToShow.length > 0 && (
-            <div className="mt-3">
-              <RunsTable runs={runsToShow} />
+      {/* ── Progress bar ── */}
+      <AnimatePresence>
+        {isRunning && progress && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1,  y:  0 }}
+            exit={{ opacity: 0 }}
+            className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"
+          >
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="text-zinc-400">
+                {progress.done < progress.total
+                  ? `Running scenario ${progress.done + 1} of ${progress.total}…`
+                  : 'Computing metrics…'}
+              </span>
+              <span className="font-mono text-zinc-600">{progress.done}/{progress.total}</span>
             </div>
-          )}
-        </div>
-      )}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+              <motion.div
+                className="h-full rounded-full bg-emerald-500"
+                animate={{ width: `${(progress.done / progress.total) * 100}%` }}
+                transition={{ duration: 0.4 }}
+              />
+            </div>
+            {runsToShow.length > 0 && (
+              <div className="mt-4">
+                <RunsTable runs={runsToShow} />
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Metrics — shown after eval completes */}
-      {metrics && !isRunning && (
-        <>
-          {/* Top metric cards */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <MetricCard label="Accuracy" value={pct(metrics.accuracy)} />
-            <MetricCard label="Macro F1" value={pct(metrics.macroF1)} />
-            <MetricCard label="Avg Confidence" value={pct(metrics.avgConfidence)} />
-            <MetricCard label="p50 Latency" value={ms(metrics.p50LatencyMs)} />
-            <MetricCard label="p95 Latency" value={ms(metrics.p95LatencyMs)} />
-            <MetricCard
-              label="Pass Rate"
-              value={`${metrics.correct}/${metrics.total}`}
-              sub={`${metrics.total - metrics.correct} incorrect`}
-            />
-          </div>
+      {/* ── Results ── */}
+      <AnimatePresence>
+        {metrics && !isRunning && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-5"
+          >
+            {/* Hero + stat chips */}
+            <div className="flex flex-wrap items-stretch gap-3">
+              <AccuracyHero
+                correct={metrics.correct}
+                total={metrics.total}
+                accuracy={metrics.accuracy}
+              />
+              <div className="flex flex-1 flex-wrap gap-3">
+                <StatChip label="Macro F1"       value={pct(metrics.macroF1)} />
+                <StatChip label="Avg Confidence" value={pct(metrics.avgConfidence)} />
+                <StatChip label="p50 Latency"    value={ms(metrics.p50LatencyMs)} />
+                <StatChip label="p95 Latency"    value={ms(metrics.p95LatencyMs)} />
+                <StatChip label="Incorrect"      value={String(metrics.total - metrics.correct)} />
+              </div>
+            </div>
 
-          {/* Confusion + per-class */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* Confusion matrix + per-class */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+                <ConfusionMatrix matrix={metrics.confusionMatrix} />
+              </div>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+                <PerClassTable perClass={metrics.perClass} />
+              </div>
+            </div>
+
+            {/* Per-scenario */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-              <ConfusionMatrix matrix={metrics.confusionMatrix} />
+              <RunsTable runs={metrics.runs} />
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-              <PerClassTable perClass={metrics.perClass} />
-            </div>
-          </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Per-scenario table */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-            <RunsTable runs={metrics.runs} />
-          </div>
-        </>
-      )}
-
-      {/* Idle state */}
+      {/* ── Idle ── */}
       {!isRunning && !metrics && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center">
-          <FlaskConical className="mx-auto mb-3 h-8 w-8 text-zinc-700" />
-          <p className="text-sm text-zinc-500">
-            Click <span className="text-zinc-300">Run Eval</span> to benchmark the agent against all {STATIC_SCENARIOS.length} ground-truth scenarios.
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-10 text-center">
+          <FlaskConical className="mx-auto mb-3 h-9 w-9 text-zinc-700" />
+          <p className="text-sm text-zinc-400">
+            Click <span className="font-semibold text-zinc-200">Run Eval</span> to benchmark the agent
+            against all {STATIC_SCENARIOS.length} ground-truth scenarios.
           </p>
-          <p className="mt-1 text-xs text-zinc-700">
-            The eval clears prior results and re-runs each scenario fresh, then computes accuracy, F1, latency, and confusion matrix.
+          <p className="mt-1.5 text-xs text-zinc-700">
+            Clears prior results · re-runs fresh · computes accuracy, F1, latency & confusion matrix
           </p>
         </div>
       )}
+
     </div>
   )
 }
