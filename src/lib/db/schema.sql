@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS wms_receipts (
 
 CREATE TABLE IF NOT EXISTS invoices (
   id                 TEXT PRIMARY KEY,
-  invoice_number     TEXT NOT NULL UNIQUE,
+  invoice_number     TEXT NOT NULL,
   vendor_name        TEXT NOT NULL,
   currency           TEXT NOT NULL DEFAULT 'USD',
   pdf_path           TEXT NOT NULL,

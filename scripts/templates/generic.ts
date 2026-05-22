@@ -37,7 +37,7 @@ export function genericTemplate(d: InvoiceRenderData): string {
   tbody tr { border-bottom: 1px solid #f4f4f5; }
   tbody tr:nth-child(even) { background: #fafafa; }
   tbody td { padding: 9px 12px; font-size: 12.5px; color: #3f3f46; vertical-align: top; }
-  td.sku { font-family: 'Courier New', monospace; font-size: 11px; color: #a1a1aa; }
+  td.sku { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #3f3f46; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .totals { display: flex; justify-content: flex-end; margin-bottom: 24px; }
   .totals-inner { width: 260px; }

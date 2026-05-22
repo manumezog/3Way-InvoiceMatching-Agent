@@ -83,7 +83,7 @@ export function getWmsReceiptByPoId(po_id: string): WmsReceipt | null {
 export function insertInvoice(invoice: Invoice): void {
   const db = getDb()
   db.prepare(`
-    INSERT OR REPLACE INTO invoices
+    INSERT INTO invoices
       (id, invoice_number, vendor_name, currency, pdf_path, line_items, status, scenario_id, created_at)
     VALUES
       (@id, @invoice_number, @vendor_name, @currency, @pdf_path, @line_items, @status, @scenario_id, @created_at)

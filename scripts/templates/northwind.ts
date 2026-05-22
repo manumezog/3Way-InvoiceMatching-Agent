@@ -35,7 +35,7 @@ export function northwindTemplate(d: InvoiceRenderData): string {
   thead th.num { text-align: right; }
   tbody td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; font-size: 12.5px; color: #334155; }
   tbody tr:nth-child(even) td { background: #f8fafc; }
-  td.sku { font-family: 'Courier New', monospace; font-size: 11px; color: #64748b; }
+  td.sku { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #334155; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: Arial, sans-serif; }
   .totals { margin-left: auto; width: 260px; margin-bottom: 28px; font-family: Arial, sans-serif; }
   .tr { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12.5px; color: #475569; border-bottom: 1px solid #f1f5f9; }

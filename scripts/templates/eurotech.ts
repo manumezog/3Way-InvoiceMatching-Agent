@@ -40,7 +40,7 @@ export function eurotechTemplate(d: InvoiceRenderData): string {
   thead th.num { text-align: right; }
   tbody td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; font-size: 12px; }
   tbody tr:nth-child(even) td { background: #fef9f9; }
-  td.sku { font-family: 'Courier New', monospace; font-size: 10.5px; color: #9ca3af; }
+  td.sku { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #374151; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .totals { display: flex; justify-content: flex-end; margin-bottom: 24px; }
   .totals-inner { width: 270px; }

@@ -37,7 +37,7 @@ export function apexTemplate(d: InvoiceRenderData): string {
   tbody tr { border-bottom: 1px solid #f3f4f6; }
   tbody tr:nth-child(even) { background: #f9fafb; }
   tbody td { padding: 10px 12px; color: #374151; vertical-align: top; }
-  td.sku { font-family: 'Courier New', monospace; font-size: 11px; color: #6b7280; white-space: nowrap; }
+  td.sku { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #374151; white-space: nowrap; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .totals { display: flex; justify-content: flex-end; margin-bottom: 32px; }
   .totals-box { width: 280px; }
