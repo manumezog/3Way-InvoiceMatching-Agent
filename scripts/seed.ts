@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer'
 import { PDFDocument } from 'pdf-lib'
+import sharp from 'sharp'
 import { faker } from '@faker-js/faker'
 import fs from 'fs'
 import path from 'path'
@@ -16,7 +17,8 @@ import type { PdfVariant } from '@/data/scenarios-static'
 faker.seed(20240101)
 
 const SCENARIOS_PATH = path.join(process.cwd(), 'data', 'scenarios.json')
-const INVOICES_OUT = path.join(process.cwd(), 'public', 'invoices')
+const INVOICES_OUT   = path.join(process.cwd(), 'public', 'invoices')
+const THUMBS_OUT     = path.join(process.cwd(), 'public', 'thumbnails')
 
 const VENDOR_META: Record<string, { address: string; email: string; phone: string }> = {
   'Apex Logistics':       { address: '1420 Harbor Blvd, Los Angeles CA 90021', email: 'ar@apexlogistics.com',        phone: '+1 213-555-0192' },
@@ -94,15 +96,29 @@ async function renderInvoicePdf(
 
   const outPath = path.join(INVOICES_OUT, `${scenarioId}.pdf`)
   fs.writeFileSync(outPath, pdfBuffer)
-  console.log(`  ✓ ${scenarioId}.pdf (${variant})`)
+
+  // Thumbnail: 480px wide, crop the top ~28% of the page (shows header with logo + invoice number)
+  const thumbBuffer = await sharp(processed)
+    .resize({ width: 480 })
+    .toBuffer()
+  const meta = await sharp(thumbBuffer).metadata()
+  const cropHeight = Math.round((meta.height ?? 280) * 0.28)
+  const finalThumb = await sharp(thumbBuffer)
+    .extract({ left: 0, top: 0, width: 480, height: Math.max(cropHeight, 160) })
+    .jpeg({ quality: 88 })
+    .toBuffer()
+  fs.writeFileSync(path.join(THUMBS_OUT, `${scenarioId}.jpg`), finalThumb)
+
+  console.log(`  ✓ ${scenarioId}.pdf + thumbnail (${variant})`)
   return `/invoices/${scenarioId}.pdf`
 }
 
 async function seed() {
   console.log('\n🌱 FastPay AI — Seed Script\n')
 
-  // Ensure output directory exists
+  // Ensure output directories exist
   fs.mkdirSync(INVOICES_OUT, { recursive: true })
+  fs.mkdirSync(THUMBS_OUT, { recursive: true })
 
   // Run DB migrations
   console.log('▸ Running migrations…')

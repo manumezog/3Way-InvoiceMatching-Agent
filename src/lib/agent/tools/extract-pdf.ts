@@ -48,6 +48,14 @@ Rules:
 - For currency, default to USD if not stated
 - SKU codes are alphanumeric identifiers — transcribe them character-by-character exactly as printed. Do NOT substitute visually similar characters: letter O ≠ digit 0, letter Q ≠ digit 0, letter I ≠ digit 1, letter B ≠ digit 8. When in doubt about a character, prefer the letter over the digit in a SKU context.`
 
+const EXT_MIME: Record<string, string> = {
+  '.pdf':  'application/pdf',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png':  'image/png',
+  '.webp': 'image/webp',
+}
+
 export async function extractPdf(pdfPath: string): Promise<ExtractedInvoice> {
   const absPath = pdfPath.startsWith('/')
     ? path.join(process.cwd(), 'public', pdfPath)
@@ -55,11 +63,12 @@ export async function extractPdf(pdfPath: string): Promise<ExtractedInvoice> {
 
   const fileBytes = fs.readFileSync(absPath)
   const base64 = fileBytes.toString('base64')
+  const mimeType = EXT_MIME[path.extname(absPath).toLowerCase()] ?? 'application/pdf'
 
   const model = getFlashModel()
   const result = await model.generateContent([
     EXTRACTION_PROMPT,
-    { inlineData: { mimeType: 'application/pdf', data: base64 } },
+    { inlineData: { mimeType, data: base64 } },
   ])
 
   const raw = result.response.text().trim()
