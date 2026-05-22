@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --skip-install)",
+      "Read(//c/tmp/**)",
+      "Bash(rm -rf ap-agent-scaffold)",
+      "Bash(npx --yes create-next-app@latest ap-agent-scaffold --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --skip-install)",
+      "Bash(npm install *)",
+      "Bash(npm audit *)",
+      "Bash(npx shadcn@latest init --defaults --base-color neutral)",
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx tsc *)",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs wc *)",
+      "Bash(python3 *)",
+      "Bash(npx shadcn@latest add badge card tabs separator scroll-area --yes)",
+      "Bash(npm run *)"
+    ]
+  }
+}
