@@ -1,25 +1,59 @@
 'use client'
 
-import { Play, BarChart3, Upload } from 'lucide-react'
+import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+
+export interface BatchStats {
+  total: number
+  done: number
+  approved: number
+  flagged: number
+  escalated: number
+}
 
 interface ActionBarProps {
   onRunBatch: () => void
   onEvalMode: () => void
   onUpload: () => void
   isRunning: boolean
+  batchStats?: BatchStats
 }
 
-export function ActionBar({ onRunBatch, onEvalMode, onUpload, isRunning }: ActionBarProps) {
+export function ActionBar({ onRunBatch, onEvalMode, onUpload, isRunning, batchStats }: ActionBarProps) {
+  const hasBatchResults = batchStats && batchStats.done > 0
+
   return (
     <div className="border-b border-zinc-800 bg-zinc-900/50 px-6 py-3">
-      <div className="mx-auto flex max-w-screen-xl items-center justify-between">
-        <div>
-          <p className="text-sm text-zinc-400">
-            Select an invoice below to process it, or run the full batch at once.
-          </p>
+      <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-4">
+        {/* Left: status text or batch stats */}
+        <div className="flex items-center gap-4">
+          {hasBatchResults ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-500">
+                Batch: {batchStats.done}/{batchStats.total}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {batchStats.approved}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-red-400">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                {batchStats.flagged}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-amber-400">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {batchStats.escalated}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">
+              Click any invoice to process it, or run the full batch at once.
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Right: action buttons */}
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="outline"
             size="sm"

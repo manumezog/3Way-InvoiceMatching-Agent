@@ -1,17 +1,18 @@
 'use client'
 
-import { ShieldCheck, ShieldAlert, AlertCircle, Gauge } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, AlertCircle, Gauge, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type DecisionStatus = 'APPROVED' | 'FLAGGED' | 'ESCALATED'
 
 export interface DecisionResult {
+  invoiceId: string
   status: DecisionStatus
-  flag_reason?: string
+  flag_reason: string | null
   confidence: number
   explanation: string
-  invoice_number?: string
-  po_number?: string
+  durationMs: number
+  traceId: string | null
 }
 
 interface DecisionOutputProps {
@@ -74,6 +75,12 @@ export function DecisionOutput({ result, isRunning }: DecisionOutputProps) {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Decision
         </h3>
+        {result && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-zinc-600">
+            <Clock className="h-3 w-3" />
+            {(result.durationMs / 1000).toFixed(1)}s
+          </span>
+        )}
       </div>
 
       {/* Body */}
@@ -81,9 +88,7 @@ export function DecisionOutput({ result, isRunning }: DecisionOutputProps) {
         {!result && !isRunning && (
           <div className="flex h-32 flex-col items-center justify-center gap-2 text-center">
             <Gauge className="h-6 w-6 text-zinc-700" />
-            <p className="text-xs text-zinc-600">
-              Awaiting agent run…
-            </p>
+            <p className="text-xs text-zinc-600">Awaiting agent run…</p>
           </div>
         )}
 
@@ -122,22 +127,6 @@ export function DecisionOutput({ result, isRunning }: DecisionOutputProps) {
                 </p>
                 <p className="text-xs leading-relaxed text-zinc-300">{result.explanation}</p>
               </div>
-
-              {/* References */}
-              {(result.invoice_number ?? result.po_number) && (
-                <div className="flex flex-wrap gap-2 border-t border-zinc-800 pt-3">
-                  {result.invoice_number && (
-                    <span className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-[10px] text-zinc-500">
-                      INV #{result.invoice_number}
-                    </span>
-                  )}
-                  {result.po_number && (
-                    <span className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-[10px] text-zinc-500">
-                      PO #{result.po_number}
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           )
         })()}
