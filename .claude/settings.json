@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --skip-install)",
+      "Read(//c/tmp/**)",
+      "Bash(rm -rf ap-agent-scaffold)",
+      "Bash(npx --yes create-next-app@latest ap-agent-scaffold --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --skip-install)",
+      "Bash(npm install *)",
+      "Bash(npm audit *)",
+      "Bash(npx shadcn@latest init --defaults --base-color neutral)",
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx tsc *)",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs wc *)",
+      "Bash(python3 *)",
+      "Bash(gcloud logging read *)",
+      "Bash(gcloud run services describe *)",
+      "Bash(gcloud run services list *)",
+      "Bash(gcloud run revisions list *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+      "Bash(gh run watch *)",
+      "Bash(ruff check *)"
+    ]
+  }
+}
