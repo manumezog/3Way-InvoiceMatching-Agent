@@ -5,11 +5,13 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { StaticScenario, PdfVariant } from '@/data/scenarios-static'
 
+type MatchStatus = 'APPROVED' | 'FLAGGED' | 'ESCALATED'
+
 interface InvoiceCardProps {
   scenario: StaticScenario
   isSelected: boolean
   isRunning: boolean
-  isDone: boolean
+  result?: MatchStatus       // actual agent result (undefined = not yet run)
   onClick: () => void
 }
 
@@ -30,29 +32,32 @@ const VARIANT_LABEL: Record<PdfVariant, string> = {
 }
 
 const DIFFICULTY_STYLES = {
-  easy: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  easy:   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   medium: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  hard: 'bg-red-500/10 text-red-400 border-red-500/20',
+  hard:   'bg-red-500/10 text-red-400 border-red-500/20',
 }
 
-const GROUND_TRUTH_DOT = {
-  APPROVED: 'bg-emerald-500',
-  FLAGGED: 'bg-red-500',
+const RESULT_DOT: Record<MatchStatus, string> = {
+  APPROVED:  'bg-emerald-500',
+  FLAGGED:   'bg-red-500',
   ESCALATED: 'bg-amber-500',
 }
 
-export function InvoiceCard({ scenario, isSelected, isRunning, isDone, onClick }: InvoiceCardProps) {
+export function InvoiceCard({ scenario, isSelected, isRunning, result, onClick }: InvoiceCardProps) {
   const Icon = VARIANT_ICON[scenario.pdf_variant]
+  const isDone = result !== undefined
 
   return (
     <button
       onClick={onClick}
+      disabled={isRunning}
       className={cn(
         'group relative flex w-full flex-col rounded-xl border p-0 text-left transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
         isSelected
           ? 'border-emerald-500/50 bg-zinc-800/80 shadow-lg shadow-emerald-500/5'
           : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800/60',
+        isRunning && 'cursor-not-allowed',
       )}
     >
       {/* Thumbnail area */}
@@ -78,11 +83,11 @@ export function InvoiceCard({ scenario, isSelected, isRunning, isDone, onClick }
           {VARIANT_LABEL[scenario.pdf_variant]}
         </span>
 
-        {/* Ground truth dot (subtle hint) */}
+        {/* Result dot — shows actual agent outcome, not ground truth */}
         {isDone && (
           <div className={cn(
-            'absolute right-2 top-2 h-2 w-2 rounded-full',
-            GROUND_TRUTH_DOT[scenario.ground_truth],
+            'absolute right-2 top-2 h-2.5 w-2.5 rounded-full ring-2 ring-zinc-900',
+            RESULT_DOT[result],
           )} />
         )}
       </div>

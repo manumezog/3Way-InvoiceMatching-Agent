@@ -1,76 +1,178 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Navbar } from '@/components/dashboard/Navbar'
-import { ActionBar } from '@/components/dashboard/ActionBar'
+import { ActionBar, type BatchStats } from '@/components/dashboard/ActionBar'
 import { InvoiceGallery } from '@/components/gallery/InvoiceGallery'
-import { TracePanel } from '@/components/agent/TracePanel'
-import { DecisionOutput } from '@/components/agent/DecisionOutput'
+import { TracePanel, type TraceStep } from '@/components/agent/TracePanel'
+import { DecisionOutput, type DecisionResult } from '@/components/agent/DecisionOutput'
 import { EvalDashboard } from '@/components/eval/EvalDashboard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import type { TraceStep } from '@/components/agent/TracePanel'
-import type { DecisionResult } from '@/components/agent/DecisionOutput'
+import { STATIC_SCENARIOS } from '@/data/scenarios-static'
 
-const PLACEHOLDER_STEPS: TraceStep[] = [
-  { id: '1', label: 'extract_pdf()', detail: 'Parsing invoice structure…', status: 'done' },
-  { id: '2', label: 'lookup_po("PO-4872")', detail: 'Fetching from purchase orders…', status: 'done' },
-  { id: '3', label: 'query_wms("PO-4872")', detail: 'Retrieving warehouse receipt…', status: 'done' },
-  { id: '4', label: 'fuzzy_match_vendor()', detail: 'Cosine similarity: 0.97', status: 'done' },
-  { id: '5', label: 'reason_and_decide()', detail: 'Evaluating 3-way match…', status: 'running' },
-]
+type MatchStatus = 'APPROVED' | 'FLAGGED' | 'ESCALATED'
 
-const PLACEHOLDER_RESULT: DecisionResult = {
-  status: 'FLAGGED',
-  flag_reason: 'SHORTAGE',
-  confidence: 0.94,
-  explanation:
-    'The vendor invoiced 50 units but the WMS receipt recorded only 48 units received at the dock. The 2-unit shortage (4%) exceeds the accepted tolerance. Invoice total is overbilled by $240.',
-  invoice_number: 'INV-2024-0392',
-  po_number: 'PO-4872',
+// ---------------------------------------------------------------------------
+// SSE stream consumer — parses chunked SSE text/event-stream responses
+// ---------------------------------------------------------------------------
+async function streamInvoice(
+  scenarioId: string,
+  onStep: (step: TraceStep) => void,
+  onResult: (result: DecisionResult) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch('/api/agent/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenarioId }),
+    signal,
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.body) throw new Error('No response body')
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buf += decoder.decode(value, { stream: true })
+    const chunks = buf.split('\n\n')
+    buf = chunks.pop() ?? ''
+
+    for (const chunk of chunks) {
+      const line = chunk.trim()
+      if (!line.startsWith('data: ')) continue
+      try {
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'step') {
+          onStep({
+            step:   data.step,
+            label:  data.label,
+            detail: data.detail,
+            status: data.status,
+            ts:     data.ts,
+          })
+        } else if (data.type === 'result') {
+          onResult({
+            invoiceId:   data.invoiceId,
+            status:      data.status,
+            flag_reason: data.flag_reason,
+            confidence:  data.confidence,
+            explanation: data.explanation,
+            durationMs:  data.durationMs,
+            traceId:     data.traceId,
+          })
+        }
+        // 'done' type — stream closes naturally
+      } catch {
+        // skip malformed event
+      }
+    }
+  }
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 export default function Home() {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [runningId, setRunningId] = useState<string | null>(null)
-  const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
-  const [activeTab, setActiveTab] = useState('gallery')
-  const [traceSteps, setTraceSteps] = useState<TraceStep[]>([])
+  const [selectedId, setSelectedId]         = useState<string | null>(null)
+  const [runningId, setRunningId]           = useState<string | null>(null)
+  const [results, setResults]               = useState<Record<string, MatchStatus>>({})
+  const [activeTab, setActiveTab]           = useState('gallery')
+  const [traceSteps, setTraceSteps]         = useState<TraceStep[]>([])
   const [decisionResult, setDecisionResult] = useState<DecisionResult | null>(null)
-  const [isRunning, setIsRunning] = useState(false)
+  const [isRunning, setIsRunning]           = useState(false)
+  const [batchStats, setBatchStats]         = useState<BatchStats | undefined>(undefined)
 
-  function runDemo(id: string) {
+  // Update a step in-place if it already exists (running → done), otherwise append
+  const applyStep = useCallback((event: TraceStep) => {
+    setTraceSteps(prev => {
+      const idx = prev.findIndex(s => s.step === event.step)
+      if (idx === -1) return [...prev, event]
+      const next = [...prev]
+      next[idx] = event
+      return next
+    })
+  }, [])
+
+  const runInvoice = useCallback(async (scenarioId: string) => {
     if (isRunning) return
-    setSelectedId(id)
+    setSelectedId(scenarioId)
     setIsRunning(true)
-    setRunningId(id)
+    setRunningId(scenarioId)
     setTraceSteps([])
     setDecisionResult(null)
 
-    // Reveal trace steps one by one — real agent wired in Phase 4
-    PLACEHOLDER_STEPS.forEach((step, i) => {
-      setTimeout(() => {
-        setTraceSteps(prev => [
-          ...prev,
-          { ...step, status: i < PLACEHOLDER_STEPS.length - 1 ? 'done' : 'running' },
-        ])
-      }, i * 700)
-    })
+    try {
+      let finalResult: DecisionResult | null = null
 
-    // Reveal decision after all steps
-    setTimeout(() => {
-      setTraceSteps(PLACEHOLDER_STEPS.map(s => ({ ...s, status: 'done' })))
-      setDecisionResult(PLACEHOLDER_RESULT)
+      await streamInvoice(
+        scenarioId,
+        applyStep,
+        (r) => {
+          finalResult = r
+          setDecisionResult(r)
+        },
+      )
+
+      if (finalResult) {
+        setResults(prev => ({
+          ...prev,
+          [scenarioId]: (finalResult as DecisionResult).status,
+        }))
+      }
+    } catch (err) {
+      console.error('Agent run failed:', err)
+    } finally {
       setIsRunning(false)
       setRunningId(null)
-      setDoneIds(prev => new Set([...prev, id]))
-    }, PLACEHOLDER_STEPS.length * 700 + 600)
-  }
+    }
+  }, [isRunning, applyStep])
 
-  function runBatch() {
-    // Full batch wired in Phase 5
-    alert('Batch processing coming in Phase 5!')
-  }
+  const runBatch = useCallback(async () => {
+    if (isRunning) return
+    setIsRunning(true)
+    setActiveTab('gallery')
+
+    const stats: BatchStats = { total: STATIC_SCENARIOS.length, done: 0, approved: 0, flagged: 0, escalated: 0 }
+    setBatchStats({ ...stats })
+
+    for (const scenario of STATIC_SCENARIOS) {
+      setSelectedId(scenario.id)
+      setRunningId(scenario.id)
+      setTraceSteps([])
+      setDecisionResult(null)
+
+      try {
+        await streamInvoice(
+          scenario.id,
+          applyStep,
+          (r) => {
+            setDecisionResult(r)
+            setResults(prev => ({ ...prev, [scenario.id]: r.status }))
+
+            stats.done++
+            if (r.status === 'APPROVED')       stats.approved++
+            else if (r.status === 'FLAGGED')   stats.flagged++
+            else if (r.status === 'ESCALATED') stats.escalated++
+            setBatchStats({ ...stats })
+          },
+        )
+      } catch (err) {
+        console.error(`Batch: ${scenario.id} failed:`, err)
+        stats.done++
+        setBatchStats({ ...stats })
+      } finally {
+        setRunningId(null)
+      }
+    }
+
+    setIsRunning(false)
+  }, [isRunning, applyStep])
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950">
@@ -80,6 +182,7 @@ export default function Home() {
         onEvalMode={() => setActiveTab('eval')}
         onUpload={() => alert('Upload coming in Phase 7!')}
         isRunning={isRunning}
+        batchStats={batchStats}
       />
 
       <main className="mx-auto w-full max-w-screen-xl flex-1 px-6 py-6">
@@ -103,8 +206,8 @@ export default function Home() {
             <InvoiceGallery
               selectedId={selectedId}
               runningId={runningId}
-              doneIds={doneIds}
-              onSelect={runDemo}
+              results={results}
+              onSelect={runInvoice}
             />
 
             <Separator className="bg-zinc-800" />
