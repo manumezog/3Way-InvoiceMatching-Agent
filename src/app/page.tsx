@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Navbar } from '@/components/dashboard/Navbar'
+import { HowItWorksModal } from '@/components/dashboard/HowItWorksModal'
 import { ActionBar, type BatchStats } from '@/components/dashboard/ActionBar'
 import { InvoiceGallery } from '@/components/gallery/InvoiceGallery'
 import { TracePanel, type TraceStep } from '@/components/agent/TracePanel'
@@ -90,6 +91,7 @@ export default function Home() {
   const [isRunning, setIsRunning]           = useState(false)
   const [batchStats, setBatchStats]         = useState<BatchStats | undefined>(undefined)
   const [showUpload, setShowUpload]         = useState(false)
+  const [showHowItWorks, setShowHowItWorks] = useState(false)
 
   // Update a step in-place if it already exists (running → done), otherwise append
   const applyStep = useCallback((event: TraceStep) => {
@@ -181,8 +183,9 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-zinc-950">
       <AnimatePresence>
         {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
+        {showHowItWorks && <HowItWorksModal onClose={() => setShowHowItWorks(false)} />}
       </AnimatePresence>
-      <Navbar />
+      <Navbar onHowItWorks={() => setShowHowItWorks(true)} />
       <ActionBar
         onRunBatch={runBatch}
         onEvalMode={() => setActiveTab('eval')}
