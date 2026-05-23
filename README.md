@@ -74,42 +74,49 @@ The end product is **frictionless**: a recruiter, hiring manager, or curious vis
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Next.js App (Vercel)                   │
-│                                                             │
-│  /app (React UI)                /app/api                    │
-│  ┌──────────────────────┐      ┌──────────────────────┐     │
-│  │ Invoice Gallery      │      │ /api/agent/run       │     │
-│  │ Batch Runner         │─────▶│ /api/agent/batch     │     │
-│  │ Live Trace Panel     │      │ /api/evals/run       │     │
-│  │ Eval Dashboard       │      └──────────┬───────────┘     │
-│  └──────────────────────┘                 │                 │
-│                                           ▼                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │             Agent Orchestrator                      │    │
-│  │  - Plans the steps                                  │    │
-│  │  - Calls tools in sequence                          │    │
-│  │  - Maintains state & confidence                     │    │
-│  │  - Streams trace events to the UI                   │    │
-│  │  - Emits to Langfuse                                │    │
-│  └────┬──────────────┬─────────────┬────────────┬──────┘    │
-│       ▼              ▼             ▼            ▼           │
-│  ┌─────────┐  ┌───────────┐  ┌──────────┐  ┌──────────┐     │
-│  │ extract │  │ lookup_po │  │ query_   │  │ fuzzy_   │     │
-│  │ _pdf    │  │           │  │ wms      │  │ match    │     │
-│  └─────────┘  └───────────┘  └──────────┘  └──────────┘     │
-│       ▼              ▼             ▼            ▼           │
-│  ┌─────────┐  ┌───────────┐  ┌──────────┐  ┌──────────┐     │
-│  │ currency│  │ check_    │  │ reason_  │  │ escalate │     │
-│  │ _convert│  │ duplicate │  │ decide   │  │          │     │
-│  └─────────┘  └───────────┘  └──────────┘  └──────────┘     │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │  Repository Layer (db/repo.ts)                      │    │
-│  │  SQLite (local) / Neon Postgres (prod)              │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Browser["🖥️ Browser\n(React / Next.js)"]
+
+    subgraph Vercel["Vercel Edge — Next.js 14"]
+        MW["Middleware\nUpstash rate-limit\n20 req/min/IP"]
+
+        subgraph API["API Routes"]
+            STREAM["/api/agent/stream\nSSE · per-scenario"]
+            EVAL["/api/eval/run\nSSE · all 12 scenarios"]
+            BYOI["/api/agent/byoi\nSSE · user upload"]
+        end
+
+        subgraph Orchestrator["Agent Orchestrator (orchestrator.ts)"]
+            direction LR
+            T1["extract_pdf\n📄 Gemini Vision"]
+            T2["lookup_po\n🔍 DB"]
+            T3["query_wms\n📦 DB"]
+            T4["fuzzy_match_vendor\n🔤 Embeddings"]
+            T5["convert_currency\n💱 FX API"]
+            T6["check_duplicate\n🔁 DB"]
+            T7["reason_and_decide\n🧠 Gemini Flash"]
+        end
+
+        REPO["Repository Layer\ndb/repo.ts"]
+    end
+
+    subgraph External["External Services"]
+        GEMINI["Google Gemini 2.5 Flash\n(Vision + Text)"]
+        NEON["Neon Postgres\nPOs · WMS · Invoices\nMatch Results"]
+        LANGFUSE["Langfuse EU\nTrace · Spans · Tokens"]
+        UPSTASH["Upstash Redis\nRate limit counters"]
+    end
+
+    Browser -->|"HTTP POST"| MW
+    MW -->|"allowed"| API
+    MW <-->|"sliding window check"| UPSTASH
+    STREAM & EVAL & BYOI --> Orchestrator
+    Orchestrator -->|"SSE steps"| Browser
+    T1 & T7 -->|"API calls"| GEMINI
+    T2 & T3 & T4 & T6 --> REPO
+    REPO <-->|"SQL"| NEON
+    Orchestrator -->|"trace + spans"| LANGFUSE
 ```
 
 ### Design principles
@@ -350,7 +357,7 @@ We **generate everything ourselves** — full control over ground truth, no lice
 ### Phase 9 — Documentation & Showcase ✅
 - [x] In-app "How it works" modal explaining the architecture
 - [x] README polish — Local Development guide, env var documentation, Neon setup notes
-- [ ] Architecture diagram in repo
+- [x] Architecture diagram in repo — Mermaid flowchart in README (renders on GitHub)
 - [x] Public demo link — [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
 
 ---
