@@ -347,9 +347,9 @@ We **generate everything ourselves** — full control over ground truth, no lice
 - [x] Deploy to Vercel — live at [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
 - [x] Custom domain — `fastpay-ai.mezapps.com`
 
-### Phase 9 — Documentation & Showcase
+### Phase 9 — Documentation & Showcase ✅
 - [x] In-app "How it works" modal explaining the architecture
-- [ ] README polish with screenshots and GIFs
+- [x] README polish — Local Development guide, env var documentation, Neon setup notes
 - [ ] Architecture diagram in repo
 - [x] Public demo link — [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
 
@@ -367,9 +367,9 @@ npm install
 
 # environment
 cp .env.example .env.local
-# fill in: GEMINI_API_KEY, OPENROUTER_API_KEY (optional), LANGFUSE keys, UPSTASH keys
+# edit .env.local and fill in the values below
 
-# seed the DB
+# seed the database (creates tables + inserts all 12 scenarios)
 npm run seed
 
 # dev server
@@ -377,6 +377,32 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Environment variables
+
+| Variable | Required | Notes |
+|---|---|---|
+| `GEMINI_API_KEY` | ✅ Yes | Google AI Studio → API Keys |
+| `DATABASE_URL` | Optional | Leave blank to use local SQLite. Set to a `postgresql://` Neon connection string for Postgres. |
+| `LANGFUSE_PUBLIC_KEY` | Optional | Langfuse project → Settings → API Keys |
+| `LANGFUSE_SECRET_KEY` | Optional | Same as above |
+| `LANGFUSE_BASE_URL` | Optional | `https://cloud.langfuse.com` (US) or `https://eu.cloud.langfuse.com` (EU). Must match the region your Langfuse project was created in — the trace deep-link uses this value. |
+| `UPSTASH_REDIS_REST_URL` | Optional | Upstash Redis console → REST URL. Rate limiting is a no-op when absent. |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional | Same as above |
+
+> **Langfuse region:** If you created your Langfuse project in EU, set `LANGFUSE_BASE_URL=https://eu.cloud.langfuse.com`. Using the wrong region causes traces to be sent correctly but the in-app trace link to open the wrong server (trace not found).
+
+### Database options
+
+**Local SQLite (default):** Leave `DATABASE_URL` unset or point it to a file path. `npm run seed` creates `data/fastpay.db` and inserts all records. Zero config.
+
+**Neon Postgres (production):** Create a Neon project, copy the pooled connection string, set it as `DATABASE_URL`. Run `npm run seed` — it reads `.env.local` automatically, creates the schema, and inserts all 12 scenarios. The app auto-migrates on first request via `CREATE TABLE IF NOT EXISTS`.
+
+### Seeding notes
+
+- `npm run seed` re-renders all 12 invoice PDFs via Puppeteer and re-inserts all records. Safe to re-run — inserts use `ON CONFLICT ... DO UPDATE` (Postgres) / `INSERT OR REPLACE` (SQLite).
+- PDFs land in `public/invoices/` and thumbnails in `public/thumbnails/`. Both are committed to git so Vercel can serve them without a build-time seed step.
+- BYOI (Bring Your Own Invoice) uploads are gitignored — they are ephemeral and stored temporarily on the server filesystem.
 
 ---
 
