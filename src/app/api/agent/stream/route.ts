@@ -1,7 +1,8 @@
 import { runMigrationsAsync } from '@/lib/db/migrate'
-import { getAllInvoices, clearMatchResultsForInvoice } from '@/lib/db/repo'
+import { getAllInvoices, clearMatchResultsForInvoice, countRunsToday } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
 import { getLangfuse } from '@/lib/agent/langfuse'
+import { env } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,15 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   await runMigrationsAsync()
+
+  const runsToday = await countRunsToday()
+  if (runsToday >= env.MAX_DAILY_RUNS) {
+    return Response.json(
+      { error: `Daily demo limit reached (${env.MAX_DAILY_RUNS} runs/day). Try again tomorrow.` },
+      { status: 503 },
+    )
+  }
+
   const invoices = await getAllInvoices()
   const invoice = invoices.find(i => i.scenario_id === scenarioId)
   if (!invoice) {

@@ -17,6 +17,9 @@ const EnvSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
+  // Cost guard — max total agent runs per UTC day across all IPs (default 100)
+  MAX_DAILY_RUNS: z.coerce.number().int().positive().default(100),
+
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })
 

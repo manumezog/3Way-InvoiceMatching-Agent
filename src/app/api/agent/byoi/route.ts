@@ -5,8 +5,9 @@ import path from 'path'
 import { z } from 'zod'
 import { getFlashModel } from '@/lib/agent/gemini'
 import { getLangfuse } from '@/lib/agent/langfuse'
-import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber } from '@/lib/db/repo'
+import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber, countRunsToday } from '@/lib/db/repo'
 import { runMigrationsAsync } from '@/lib/db/migrate'
+import { env } from '@/lib/env'
 import { runAgent } from '@/lib/agent/orchestrator'
 
 export const dynamic = 'force-dynamic'
@@ -161,6 +162,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     return new Response(`Unsupported file type: ${mimeType}`, { status: 415 })
   }
 
+  const runsToday = await countRunsToday()
+  if (runsToday >= env.MAX_DAILY_RUNS) {
+    return new Response('Daily demo limit reached. Try again tomorrow.', { status: 503 })
+  }
+
   const buf = Buffer.from(await file.arrayBuffer())
   if (buf.byteLength > MAX_BYTES) {
     return new Response('File exceeds 10 MB limit', { status: 413 })
@@ -172,6 +178,8 @@ export async function POST(req: NextRequest): Promise<Response> {
         controller.enqueue(new TextEncoder().encode(sse(data)))
       }
 
+      let savePath: string | null = null
+
       try {
         await runMigrationsAsync()
 
@@ -179,7 +187,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         emit({ type: 'status', message: 'Saving uploaded file…' })
         const id  = randomUUID()
         const filename  = `byoi-${id}${ext}`
-        const savePath  = path.join(process.cwd(), 'public', 'invoices', filename)
+        savePath  = path.join(process.cwd(), 'public', 'invoices', filename)
         fs.writeFileSync(savePath, buf)
         const pdfPath   = `/invoices/${filename}`
 
@@ -273,6 +281,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       } catch (err) {
         emit({ type: 'error', message: String(err) })
       } finally {
+        // Clean up uploaded file — Vercel filesystem is ephemeral anyway,
+        // but this prevents accumulation during long-running dev sessions
+        if (savePath) {
+          try { fs.unlinkSync(savePath) } catch { /* already gone */ }
+        }
         controller.close()
       }
     },

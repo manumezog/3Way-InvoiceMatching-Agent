@@ -258,3 +258,16 @@ export async function getAllMatchResults(): Promise<MatchResult[]> {
     async () => { const sql = getNeon(); return sql`SELECT * FROM match_results ORDER BY matched_at DESC` as Promise<Record<string, unknown>[]> },
   )
 }
+
+export async function countRunsToday(): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10) // 'YYYY-MM-DD'
+  if (isPostgres()) {
+    const sql = getNeon()
+    const rows = await sql`SELECT COUNT(*)::int AS n FROM match_results WHERE matched_at >= ${today}` as { n: number }[]
+    return rows[0]?.n ?? 0
+  }
+  const row = getDb()
+    .prepare("SELECT COUNT(*) as n FROM match_results WHERE matched_at >= ?")
+    .get(today) as { n: number } | undefined
+  return row?.n ?? 0
+}

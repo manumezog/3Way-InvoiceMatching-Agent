@@ -1,7 +1,8 @@
 import { runMigrationsAsync } from '@/lib/db/migrate'
-import { getAllInvoices, clearMatchResults } from '@/lib/db/repo'
+import { getAllInvoices, clearMatchResults, countRunsToday } from '@/lib/db/repo'
 import { runAgent } from '@/lib/agent/orchestrator'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
+import { env } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,15 @@ function computeMetrics(runs: EvalRun[]): EvalMetrics {
 
 export async function POST(): Promise<Response> {
   await runMigrationsAsync()
+
+  const runsToday = await countRunsToday()
+  const scenarioCount = STATIC_SCENARIOS.length
+  if (runsToday + scenarioCount > env.MAX_DAILY_RUNS) {
+    return Response.json(
+      { error: `Daily demo limit would be exceeded. ${env.MAX_DAILY_RUNS - runsToday} runs remaining today.` },
+      { status: 503 },
+    )
+  }
 
   // Reset DB so eval runs from a clean slate
   await clearMatchResults()
