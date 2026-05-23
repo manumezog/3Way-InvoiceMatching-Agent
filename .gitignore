@@ -44,7 +44,8 @@ yarn-error.log*
 /public/invoices/*.pdf
 /public/invoices/*.png
 /public/invoices/byoi-*
-/public/thumbnails/
+# thumbnails are committed so Vercel can serve them (static scenario JPGs only, ~150KB total)
+/public/thumbnails/byoi-*
 
 # vercel
 .vercel
