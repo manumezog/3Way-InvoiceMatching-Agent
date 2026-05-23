@@ -1,22 +1,22 @@
 import path from 'path'
+import fs from 'fs'
+import { neon } from '@neondatabase/serverless'
 
-// Returns true when DATABASE_URL points to a Postgres/Neon connection string
 export function isPostgres(): boolean {
   const url = process.env.DATABASE_URL ?? ''
   return url.startsWith('postgres://') || url.startsWith('postgresql://')
 }
 
-// SQLite singleton — only used in local dev
+// SQLite singleton — local dev only
 let _sqlite: import('better-sqlite3').Database | null = null
 
 export function getDb(): import('better-sqlite3').Database {
   if (_sqlite) return _sqlite
 
-  // Avoid importing better-sqlite3 in production (it's a native module not
-  // available in Vercel's runtime).
+  // better-sqlite3 is a native Node module unavailable in Vercel's runtime.
+  // Dynamic require keeps it out of the production bundle entirely.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Database = require('better-sqlite3') as typeof import('better-sqlite3')
-  const fs       = require('fs')  as typeof import('fs')
 
   const dbPath = process.env.DATABASE_URL ?? path.join(process.cwd(), 'data', 'fastpay.db')
   const dir    = path.dirname(dbPath)
@@ -28,12 +28,10 @@ export function getDb(): import('better-sqlite3').Database {
   return _sqlite
 }
 
-// Neon client singleton — used in production (Vercel)
-let _neon: ReturnType<typeof import('@neondatabase/serverless').neon> | null = null
+// Neon client singleton — production (Vercel)
+let _neon: ReturnType<typeof neon> | null = null
 
-export function getNeon() {
-  if (_neon) return _neon
-  const { neon } = require('@neondatabase/serverless') as typeof import('@neondatabase/serverless')
-  _neon = neon(process.env.DATABASE_URL!)
+export function getNeon(): ReturnType<typeof neon> {
+  if (!_neon) _neon = neon(process.env.DATABASE_URL!)
   return _neon
 }

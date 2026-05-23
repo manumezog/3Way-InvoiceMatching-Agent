@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { FileText, Camera, ScanLine, PenLine, Layers } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -70,12 +71,14 @@ export function InvoiceCard({ scenario, isSelected, isRunning, result, onClick }
       )}>
         {/* Actual invoice thumbnail */}
         {!thumbError ? (
-          <img
+          <Image
             src={thumbSrc}
             alt={scenario.title}
+            fill
+            sizes="(max-width: 768px) 50vw, 25vw"
             onError={() => setThumbError(true)}
             className={cn(
-              'h-full w-full object-cover object-top transition-all duration-300',
+              'object-cover object-top transition-all duration-300',
               isSelected ? 'brightness-110' : 'brightness-75 group-hover:brightness-90',
             )}
           />

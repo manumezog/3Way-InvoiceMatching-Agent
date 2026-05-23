@@ -6,7 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
 
-import { runMigrations, runMigrationsAsync } from '@/lib/db/migrate'
+import { runMigrationsAsync } from '@/lib/db/migrate'
 import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber } from '@/lib/db/repo'
 import { isPostgres, getDb, getNeon } from '@/lib/db/client'
 import { renderTemplate } from './templates/index'
