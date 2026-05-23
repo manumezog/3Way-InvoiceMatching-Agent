@@ -1,7 +1,7 @@
 import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getAllInvoices, clearMatchResultsForInvoice, countRunsToday } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
-import { getLangfuse, getLangfuseBaseUrl } from '@/lib/agent/langfuse'
+import { getLangfuse, buildTraceUrl } from '@/lib/agent/langfuse'
 import { env } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
@@ -102,8 +102,7 @@ export async function POST(req: Request): Promise<Response> {
           await langfuse?.flushAsync()
         }
 
-        const base = getLangfuseBaseUrl()
-        const traceUrl = result.traceId ? `${base}/trace/${result.traceId}` : null
+        const traceUrl = result.traceId ? await buildTraceUrl(result.traceId) : null
         send({ type: 'result', ...result, traceUrl })
       } catch (err) {
         send({ type: 'error', message: String(err) })

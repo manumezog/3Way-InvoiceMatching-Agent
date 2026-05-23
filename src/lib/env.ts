@@ -12,6 +12,8 @@ const EnvSchema = z.object({
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_SECRET_KEY: z.string().optional(),
   LANGFUSE_BASE_URL: z.string().url().optional(),
+  // Optional: avoids an extra API call to resolve trace URLs on EU region
+  LANGFUSE_PROJECT_ID: z.string().optional(),
 
   // Rate limiting — required from Phase 8 onward
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),

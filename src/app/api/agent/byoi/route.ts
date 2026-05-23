@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { z } from 'zod'
 import { getFlashModel } from '@/lib/agent/gemini'
-import { getLangfuse } from '@/lib/agent/langfuse'
+import { getLangfuse, buildTraceUrl } from '@/lib/agent/langfuse'
 import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber, countRunsToday } from '@/lib/db/repo'
 import { runMigrationsAsync } from '@/lib/db/migrate'
 import { env } from '@/lib/env'
@@ -264,7 +264,8 @@ export async function POST(req: NextRequest): Promise<Response> {
           invoiceId,
           (event) => emit({ type: 'step', ...event }),
           traceId,
-        ).then(result => {
+        ).then(async result => {
+          const traceUrl = result.traceId ? await buildTraceUrl(result.traceId) : null
           emit({
             type:        'result',
             invoiceId:   result.invoiceId,
@@ -274,6 +275,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             explanation: result.explanation,
             durationMs:  result.durationMs,
             traceId:     result.traceId,
+            traceUrl,
           })
         })
 
