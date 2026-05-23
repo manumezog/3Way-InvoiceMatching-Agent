@@ -2,6 +2,7 @@ import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getAllInvoices } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
 import { getLangfuse } from '@/lib/agent/langfuse'
+import { env } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,7 +90,8 @@ export async function POST(req: Request): Promise<Response> {
           await langfuse?.flushAsync()
         }
 
-        send({ type: 'result', ...result })
+        const langfuseBase = env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com'
+        send({ type: 'result', ...result, langfuseBase })
       } catch (err) {
         send({ type: 'error', message: String(err) })
         if (lfTrace) {
