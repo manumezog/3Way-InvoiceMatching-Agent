@@ -335,17 +335,17 @@ We **generate everything ourselves** — full control over ground truth, no lice
 - [x] Langfuse trace deep-link in result panel
 - [x] Loading states, empty states, error states (AnimatePresence transitions)
 - [x] "Bring Your Own Invoice" upload — synthetic PO+WMS generated with injected discrepancy; supports PDF/JPEG/PNG/WEBP up to 10 MB
-- [ ] "Adversarial Mode" toggle
+- [ ] "Adversarial Mode" toggle *(deferred — not in scope for v1)*
 
-### Phase 8 — Abuse Protection, CI/CD & Deployment
-- [ ] Upstash Redis rate limiting middleware
+### Phase 8 — Abuse Protection, CI/CD & Deployment ✅
+- [x] Upstash Redis rate limiting middleware — sliding window 20 req/min/IP on all agent and eval endpoints
 - [ ] Daily budget guard
 - [ ] Input schema validation on all API routes
 - [ ] Pre-deploy security sweep (no secrets, no SQL injection, no XSS)
-- [ ] `.github/workflows/ci.yml` — GitHub Actions CI: runs `lint` + `tsc --noEmit` + `npm run build` on every push/PR; blocks merge on failure
-- [ ] Vercel GitHub integration — auto-deploys to production on merge to `main` (zero extra config)
-- [ ] Deploy to Vercel
-- [ ] Custom domain (optional)
+- [x] `.github/workflows/ci.yml` — GitHub Actions CI: runs `lint` + `tsc --noEmit` + `npm run build` on every push/PR; blocks merge on failure
+- [x] Vercel GitHub integration — auto-deploys to production on merge to `master`
+- [x] Deploy to Vercel — live at [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
+- [x] Custom domain — `fastpay-ai.mezapps.com`
 
 ### Phase 9 — Documentation & Showcase
 - [x] In-app "How it works" modal explaining the architecture
