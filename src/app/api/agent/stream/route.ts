@@ -2,7 +2,6 @@ import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getAllInvoices, clearMatchResultsForInvoice } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
 import { getLangfuse } from '@/lib/agent/langfuse'
-import { env } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,8 +92,16 @@ export async function POST(req: Request): Promise<Response> {
           await langfuse?.flushAsync()
         }
 
-        const langfuseBase = (env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com').replace(/\/$/, '')
-        const traceUrl = result.traceId ? `${langfuseBase}/trace/${result.traceId}` : null
+        // Build full trace URL using the client's own baseUrl + projectId (populated after flush).
+        // The short /trace/{id} format only works on US; EU requires /project/{id}/traces/{id}.
+        let traceUrl: string | null = null
+        if (result.traceId && langfuse) {
+          const base      = (langfuse.baseUrl as string).replace(/\/$/, '')
+          const projectId = (langfuse as unknown as { projectId?: string }).projectId
+          traceUrl = projectId
+            ? `${base}/project/${projectId}/traces/${result.traceId}`
+            : `${base}/trace/${result.traceId}`
+        }
         send({ type: 'result', ...result, traceUrl })
       } catch (err) {
         send({ type: 'error', message: String(err) })
