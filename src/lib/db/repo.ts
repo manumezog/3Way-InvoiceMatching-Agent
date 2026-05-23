@@ -76,7 +76,7 @@ export async function insertPO(po: PurchaseOrder): Promise<void> {
       const sql = getNeon()
       await sql`
         INSERT INTO purchase_orders (id, po_number, vendor_name, currency, line_items, created_at)
-        VALUES (${po.id}, ${po.po_number}, ${po.vendor_name}, ${po.currency}, ${po.line_items as never}, ${po.created_at})
+        VALUES (${po.id}, ${po.po_number}, ${po.vendor_name}, ${po.currency}, ${serialize(po.line_items)}, ${po.created_at})
         ON CONFLICT (id) DO UPDATE SET
           po_number = EXCLUDED.po_number, vendor_name = EXCLUDED.vendor_name,
           currency = EXCLUDED.currency, line_items = EXCLUDED.line_items
@@ -122,7 +122,7 @@ export async function insertWmsReceipt(receipt: WmsReceipt): Promise<void> {
       const sql = getNeon()
       await sql`
         INSERT INTO wms_receipts (id, po_id, received_at, line_items)
-        VALUES (${receipt.id}, ${receipt.po_id}, ${receipt.received_at}, ${receipt.line_items as never})
+        VALUES (${receipt.id}, ${receipt.po_id}, ${receipt.received_at}, ${serialize(receipt.line_items)})
         ON CONFLICT (id) DO UPDATE SET line_items = EXCLUDED.line_items
       `
     },
@@ -151,7 +151,7 @@ export async function insertInvoice(invoice: Invoice): Promise<void> {
       await sql`
         INSERT INTO invoices (id, invoice_number, vendor_name, currency, pdf_path, line_items, status, scenario_id, created_at)
         VALUES (${invoice.id}, ${invoice.invoice_number}, ${invoice.vendor_name}, ${invoice.currency},
-                ${invoice.pdf_path}, ${invoice.line_items as never}, ${invoice.status},
+                ${invoice.pdf_path}, ${serialize(invoice.line_items)}, ${invoice.status},
                 ${invoice.scenario_id ?? null}, ${invoice.created_at})
       `
     },

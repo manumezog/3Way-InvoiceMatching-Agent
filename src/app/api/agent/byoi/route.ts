@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { getFlashModel } from '@/lib/agent/gemini'
 import { getLangfuse } from '@/lib/agent/langfuse'
 import { insertPO, insertWmsReceipt, insertInvoice, getPOByNumber } from '@/lib/db/repo'
-import { runMigrations } from '@/lib/db/migrate'
+import { runMigrationsAsync } from '@/lib/db/migrate'
 import { runAgent } from '@/lib/agent/orchestrator'
 
 export const dynamic = 'force-dynamic'
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       }
 
       try {
-        runMigrations()
+        await runMigrationsAsync()
 
         // Save file
         emit({ type: 'status', message: 'Saving uploaded file…' })

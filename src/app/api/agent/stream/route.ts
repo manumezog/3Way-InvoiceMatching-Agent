@@ -1,4 +1,4 @@
-import { runMigrations } from '@/lib/db/migrate'
+import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getAllInvoices } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
 import { getLangfuse } from '@/lib/agent/langfuse'
@@ -16,7 +16,7 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: 'Invalid scenarioId' }, { status: 400 })
   }
 
-  runMigrations()
+  await runMigrationsAsync()
   const invoices = await getAllInvoices()
   const invoice = invoices.find(i => i.scenario_id === scenarioId)
   if (!invoice) {

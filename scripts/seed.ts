@@ -1,3 +1,5 @@
+import { config as loadEnv } from 'dotenv'
+loadEnv({ path: '.env.local' })
 import puppeteer from 'puppeteer'
 import { PDFDocument } from 'pdf-lib'
 import sharp from 'sharp'

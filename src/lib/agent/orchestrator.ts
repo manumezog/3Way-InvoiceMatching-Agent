@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { runMigrations } from '@/lib/db/migrate'
+import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getInvoiceById, insertMatchResult, updateInvoiceStatus } from '@/lib/db/repo'
 import {
   extractPdf, lookupPo, lookupPoByVendor, queryWms,
@@ -38,7 +38,7 @@ type EmitFn = (event: TraceEvent) => void
 export async function runAgent(invoiceId: string, emit: EmitFn = () => {}, traceId: string | null = null): Promise<AgentResult> {
   const start = Date.now()
   const trace: TraceEvent[] = []
-  runMigrations()
+  await runMigrationsAsync()
 
   function step(id: string, label: string, detail?: string): void {
     const event: TraceEvent = { step: id, label, detail, status: 'running', ts: Date.now() }

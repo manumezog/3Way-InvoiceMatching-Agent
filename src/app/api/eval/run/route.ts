@@ -1,4 +1,4 @@
-import { runMigrations } from '@/lib/db/migrate'
+import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getAllInvoices, clearMatchResults } from '@/lib/db/repo'
 import { runAgent } from '@/lib/agent/orchestrator'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
@@ -74,7 +74,7 @@ function computeMetrics(runs: EvalRun[]): EvalMetrics {
 }
 
 export async function POST(): Promise<Response> {
-  runMigrations()
+  await runMigrationsAsync()
 
   // Reset DB so eval runs from a clean slate
   await clearMatchResults()

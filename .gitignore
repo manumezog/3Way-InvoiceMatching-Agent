@@ -41,9 +41,9 @@ yarn-error.log*
 /data/*.db-wal
 
 # generated assets (reproduced by seed script)
-/public/invoices/*.pdf
-/public/invoices/*.png
+# scenario-*.pdf are committed (~1.2MB) so Vercel can serve them without a build-time seed step
 /public/invoices/byoi-*
+/public/invoices/*.png
 # thumbnails are committed so Vercel can serve them (static scenario JPGs only, ~150KB total)
 /public/thumbnails/byoi-*
 

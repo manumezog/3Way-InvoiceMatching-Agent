@@ -22,11 +22,11 @@ export async function runMigrationsAsync(): Promise<void> {
   if (neonMigrated) return
   const sql  = getNeon()
   const ddl  = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'db', 'schema.pg.sql'), 'utf-8')
-  // Split on semicolons and run each statement individually (neon tagged template
-  // doesn't support multi-statement strings)
+  // Split on semicolons and run each statement individually via sql.query()
+  // (tagged template doesn't support multi-statement strings; sql.query() handles raw SQL)
   const stmts = ddl.split(';').map(s => s.trim()).filter(Boolean)
   for (const stmt of stmts) {
-    await sql([stmt + ';'] as unknown as TemplateStringsArray)
+    await sql.query(stmt + ';')
   }
   neonMigrated = true
 }
