@@ -14,7 +14,7 @@ export interface DecisionResult {
   explanation: string
   durationMs: number
   traceId: string | null
-  langfuseBase?: string
+  traceUrl: string | null
 }
 
 interface DecisionOutputProps {
@@ -91,9 +91,9 @@ export function DecisionOutput({ result, isRunning }: DecisionOutputProps) {
                 <Clock className="h-3 w-3" />
                 {(result.durationMs / 1000).toFixed(1)}s
               </span>
-              {result.traceId && (
+              {result.traceUrl && (
                 <a
-                  href={`${result.langfuseBase ?? 'https://cloud.langfuse.com'}/trace/${result.traceId}`}
+                  href={result.traceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Open trace in Langfuse"

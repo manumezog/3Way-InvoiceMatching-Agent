@@ -67,8 +67,8 @@ async function streamInvoice(
             confidence:  data.confidence,
             explanation: data.explanation,
             durationMs:  data.durationMs,
-            traceId:     data.traceId,
-            langfuseBase: data.langfuseBase,
+            traceId:  data.traceId,
+            traceUrl: data.traceUrl ?? null,
           })
         }
         // 'done' type — stream closes naturally

@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db/client'
+import { isPostgres, getDb } from '@/lib/db/client'
 
 export interface FxResult {
   fromCurrency: string
@@ -21,6 +21,7 @@ const FALLBACK_RATES: Record<string, number> = {
 function rateKey(from: string, to: string) { return `${from}_${to}` }
 
 function ensureFxTable() {
+  if (isPostgres()) return
   getDb().exec(`
     CREATE TABLE IF NOT EXISTS fx_cache (
       pair       TEXT PRIMARY KEY,
@@ -31,6 +32,7 @@ function ensureFxTable() {
 }
 
 function getCachedRate(from: string, to: string): number | null {
+  if (isPostgres()) return null
   ensureFxTable()
   const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString() // 6h TTL
   const row = getDb()
@@ -40,6 +42,7 @@ function getCachedRate(from: string, to: string): number | null {
 }
 
 function cacheRate(from: string, to: string, rate: number) {
+  if (isPostgres()) return
   ensureFxTable()
   getDb()
     .prepare('INSERT OR REPLACE INTO fx_cache (pair, rate, fetched_at) VALUES (?, ?, ?)')

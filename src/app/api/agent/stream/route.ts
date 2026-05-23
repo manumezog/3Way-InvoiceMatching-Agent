@@ -93,8 +93,9 @@ export async function POST(req: Request): Promise<Response> {
           await langfuse?.flushAsync()
         }
 
-        const langfuseBase = env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com'
-        send({ type: 'result', ...result, langfuseBase })
+        const langfuseBase = (env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com').replace(/\/$/, '')
+        const traceUrl = result.traceId ? `${langfuseBase}/trace/${result.traceId}` : null
+        send({ type: 'result', ...result, traceUrl })
       } catch (err) {
         send({ type: 'error', message: String(err) })
         if (lfTrace) {
