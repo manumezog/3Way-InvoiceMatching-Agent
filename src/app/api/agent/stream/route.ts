@@ -2,6 +2,7 @@ import { runMigrationsAsync } from '@/lib/db/migrate'
 import { getAllInvoices, clearMatchResultsForInvoice, countRunsToday } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
 import { getLangfuse, getLangfuseBaseUrl } from '@/lib/agent/langfuse'
+import { env } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { X, FileText, Search, GitMerge, ShieldCheck, Zap } from 'lucide-react'
 
 interface HowItWorksModalProps {

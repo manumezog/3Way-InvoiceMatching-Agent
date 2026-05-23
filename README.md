@@ -339,7 +339,7 @@ We **generate everything ourselves** — full control over ground truth, no lice
 
 ### Phase 8 — Abuse Protection, CI/CD & Deployment ✅
 - [x] Upstash Redis rate limiting middleware — sliding window 20 req/min/IP on all agent and eval endpoints
-- [ ] Daily budget guard
+- [x] Daily budget guard — `MAX_DAILY_RUNS` env var (default 100 ≈ $0.30/day max); enforced on stream, eval, and BYOI routes via Neon row count
 - [ ] Input schema validation on all API routes
 - [ ] Pre-deploy security sweep (no secrets, no SQL injection, no XSS)
 - [x] `.github/workflows/ci.yml` — GitHub Actions CI: runs `lint` + `tsc --noEmit` + `npm run build` on every push/PR; blocks merge on failure
