@@ -2,6 +2,8 @@
 
 > An agentic AI back-office worker that reads messy vendor invoices, cross-references them against Purchase Orders and Warehouse Receipts, and autonomously approves or flags them — with reasoning, confidence scores, and full traceability.
 
+**[Live Demo → fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)**
+
 A learning side project exploring real-world **agentic workflows**, **document AI**, **LLM evaluation**, and **production-grade agent observability** — applied to a genuine supply chain pain point.
 
 ---
@@ -346,10 +348,10 @@ We **generate everything ourselves** — full control over ground truth, no lice
 - [ ] Custom domain (optional)
 
 ### Phase 9 — Documentation & Showcase
-- [ ] In-app "How it works" modal explaining the architecture
+- [x] In-app "How it works" modal explaining the architecture
 - [ ] README polish with screenshots and GIFs
 - [ ] Architecture diagram in repo
-- [ ] Public demo link
+- [x] Public demo link — [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
 
 ---
 
