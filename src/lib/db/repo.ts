@@ -192,6 +192,20 @@ export async function getInvoiceByHash(hash: string): Promise<Invoice | null> {
 // ---------------------------------------------------------------------------
 // Match Results
 // ---------------------------------------------------------------------------
+export async function clearMatchResultsForInvoice(invoiceId: string): Promise<void> {
+  await exec(
+    () => {
+      getDb().prepare('DELETE FROM match_results WHERE invoice_id = ?').run(invoiceId)
+      getDb().prepare("UPDATE invoices SET status = 'pending' WHERE id = ?").run(invoiceId)
+    },
+    async () => {
+      const sql = getNeon()
+      await sql`DELETE FROM match_results WHERE invoice_id = ${invoiceId}`
+      await sql`UPDATE invoices SET status = 'pending' WHERE id = ${invoiceId}`
+    },
+  )
+}
+
 export async function clearMatchResults(): Promise<void> {
   await exec(
     () => {

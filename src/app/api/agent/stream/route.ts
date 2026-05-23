@@ -1,5 +1,5 @@
 import { runMigrationsAsync } from '@/lib/db/migrate'
-import { getAllInvoices } from '@/lib/db/repo'
+import { getAllInvoices, clearMatchResultsForInvoice } from '@/lib/db/repo'
 import { runAgent, type TraceEvent } from '@/lib/agent/orchestrator'
 import { getLangfuse } from '@/lib/agent/langfuse'
 import { env } from '@/lib/env'
@@ -23,6 +23,9 @@ export async function POST(req: Request): Promise<Response> {
   if (!invoice) {
     return Response.json({ error: `No invoice for scenario ${scenarioId}` }, { status: 404 })
   }
+
+  // Reset any prior match result so re-runs don't get flagged as duplicates
+  await clearMatchResultsForInvoice(invoice.id)
 
   // ---------------------------------------------------------------------------
   // Langfuse trace — created once per agent run; null if keys not configured
