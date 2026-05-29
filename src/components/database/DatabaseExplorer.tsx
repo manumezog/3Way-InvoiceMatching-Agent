@@ -30,35 +30,49 @@ function Td({ children, className = '' }: { children: React.ReactNode; className
   return <td className={`px-3 py-2.5 text-xs text-zinc-300 align-top ${className}`}>{children}</td>
 }
 
-function LineItemsCell({ items }: { items: Array<{ sku: string; description?: string; qty?: number; unit_price?: number; received_qty?: number }> }) {
-  return (
-    <div className="space-y-0.5">
-      {items.map((li, i) => (
-        <div key={i} className="flex gap-2 text-[11px]">
-          <span className="font-mono text-zinc-400">{li.sku}</span>
-          <span className="text-zinc-500">{li.description ?? '—'}</span>
-          {'qty' in li && <span className="text-zinc-500">×{li.qty} @ ${li.unit_price}</span>}
-          {'received_qty' in li && <span className="text-zinc-500">rcvd: {li.received_qty}</span>}
-        </div>
-      ))}
-    </div>
-  )
+// ERP-style header row (darker stripe) for PO / Invoice / WMS receipt
+function HeaderRow({ children }: { children: React.ReactNode }) {
+  return <tr className="border-b border-zinc-700 bg-zinc-800/60">{children}</tr>
+}
+// Indented line-item detail row
+function DetailRow({ children }: { children: React.ReactNode }) {
+  return <tr className="border-b border-zinc-800/40 hover:bg-zinc-800/20">{children}</tr>
+}
+function DetailTd({ children, className = '', colSpan }: { children?: React.ReactNode; className?: string; colSpan?: number }) {
+  return <td colSpan={colSpan} className={`py-1.5 pl-8 pr-3 text-[11px] text-zinc-500 ${className}`}>{children}</td>
 }
 
 function POsTable({ pos }: { pos: PurchaseOrder[] }) {
   if (!pos.length) return <p className="p-4 text-sm text-zinc-500">No purchase orders yet.</p>
+  // 8 columns: PO# | Vendor | Currency | Created | SKU | Description | Qty | Unit Price
   return (
     <table className="w-full">
-      <thead><tr className="border-b border-zinc-800">{['PO #','Vendor','Currency','Line Items','Created'].map(h => <Th key={h}>{h}</Th>)}</tr></thead>
+      <thead>
+        <tr className="border-b border-zinc-800">
+          <Th>PO #</Th><Th>Vendor</Th><Th>Currency</Th><Th>Created</Th>
+          <Th>SKU</Th><Th>Description</Th><Th>Qty</Th><Th>Unit Price</Th>
+        </tr>
+      </thead>
       <tbody>
         {pos.map(po => (
-          <tr key={po.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-            <Td><span className="font-mono text-zinc-200">{po.po_number}</span></Td>
-            <Td>{po.vendor_name}</Td>
-            <Td>{po.currency}</Td>
-            <Td><LineItemsCell items={po.line_items} /></Td>
-            <Td className="text-zinc-500">{po.created_at.slice(0, 10)}</Td>
-          </tr>
+          <>
+            <HeaderRow key={`h-${po.id}`}>
+              <Td><span className="font-mono text-zinc-200">{po.po_number}</span></Td>
+              <Td>{po.vendor_name}</Td>
+              <Td>{po.currency}</Td>
+              <Td className="text-zinc-500">{po.created_at.slice(0, 10)}</Td>
+              <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-600">{po.line_items.length} line item{po.line_items.length !== 1 ? 's' : ''}</td>
+            </HeaderRow>
+            {po.line_items.map((li, i) => (
+              <DetailRow key={`${po.id}-${i}`}>
+                <DetailTd colSpan={4} />
+                <DetailTd><span className="font-mono text-zinc-400">{li.sku}</span></DetailTd>
+                <DetailTd>{li.description}</DetailTd>
+                <DetailTd>{li.qty}</DetailTd>
+                <DetailTd>${li.unit_price.toFixed(2)}</DetailTd>
+              </DetailRow>
+            ))}
+          </>
         ))}
       </tbody>
     </table>
@@ -70,14 +84,28 @@ function WmsTable({ wmsReceipts, pos }: { wmsReceipts: WmsReceipt[]; pos: Purcha
   if (!wmsReceipts.length) return <p className="p-4 text-sm text-zinc-500">No WMS receipts yet.</p>
   return (
     <table className="w-full">
-      <thead><tr className="border-b border-zinc-800">{['PO #','Received At','Line Items'].map(h => <Th key={h}>{h}</Th>)}</tr></thead>
+      <thead>
+        <tr className="border-b border-zinc-800">
+          {['PO #', 'Received At'].map(h => <Th key={h}>{h}</Th>)}
+          <Th>SKU</Th><Th>Received Qty</Th>
+        </tr>
+      </thead>
       <tbody>
         {wmsReceipts.map(r => (
-          <tr key={r.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-            <Td><span className="font-mono text-zinc-200">{poMap[r.po_id] ?? r.po_id.slice(0, 8)}</span></Td>
-            <Td className="text-zinc-500">{r.received_at.slice(0, 16).replace('T', ' ')}</Td>
-            <Td><LineItemsCell items={r.line_items} /></Td>
-          </tr>
+          <>
+            <HeaderRow key={`h-${r.id}`}>
+              <Td><span className="font-mono text-zinc-200">{poMap[r.po_id] ?? r.po_id.slice(0, 8)}</span></Td>
+              <Td className="text-zinc-500">{r.received_at.slice(0, 16).replace('T', ' ')}</Td>
+              <td colSpan={2} className="px-3 py-2 text-[11px] text-zinc-600">{r.line_items.length} line item{r.line_items.length !== 1 ? 's' : ''}</td>
+            </HeaderRow>
+            {r.line_items.map((li, i) => (
+              <DetailRow key={`${r.id}-${i}`}>
+                <DetailTd colSpan={2} />
+                <DetailTd><span className="font-mono text-zinc-400">{li.sku}</span></DetailTd>
+                <DetailTd>{li.received_qty}</DetailTd>
+              </DetailRow>
+            ))}
+          </>
         ))}
       </tbody>
     </table>
@@ -91,23 +119,39 @@ function InvoicesTable({ invoices, matchResults }: { invoices: Invoice[]; matchR
     <table className="w-full">
       <thead>
         <tr className="border-b border-zinc-800">
-          {['Invoice #','Vendor','Currency','Line Items','Status','Match Result','Confidence','Matched At'].map(h => <Th key={h}>{h}</Th>)}
+          {['Invoice #', 'Vendor', 'Currency'].map(h => <Th key={h}>{h}</Th>)}
+          <Th>Agent Decision</Th>
+          <Th>Flag Reason</Th>
+          <Th>Confidence</Th>
+          <Th>Processed At</Th>
+          <Th>SKU</Th><Th>Description</Th><Th>Qty</Th><Th>Unit Price</Th>
         </tr>
       </thead>
       <tbody>
         {invoices.map(inv => {
           const match = matchMap[inv.id]
           return (
-            <tr key={inv.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-              <Td><span className="font-mono text-zinc-200">{inv.invoice_number}</span></Td>
-              <Td>{inv.vendor_name}</Td>
-              <Td>{inv.currency}</Td>
-              <Td><LineItemsCell items={inv.line_items} /></Td>
-              <Td><StatusBadge status={inv.status} /></Td>
-              <Td>{match ? <StatusBadge status={match.status} /> : <span className="text-zinc-600">—</span>}</Td>
-              <Td>{match ? <span className="text-zinc-400">{Math.round(match.confidence * 100)}%</span> : '—'}</Td>
-              <Td className="text-zinc-500">{match ? match.matched_at.slice(0, 16).replace('T', ' ') : '—'}</Td>
-            </tr>
+            <>
+              <HeaderRow key={`h-${inv.id}`}>
+                <Td><span className="font-mono text-zinc-200">{inv.invoice_number}</span></Td>
+                <Td>{inv.vendor_name}</Td>
+                <Td>{inv.currency}</Td>
+                <Td>{match ? <StatusBadge status={match.status} /> : <StatusBadge status="pending" />}</Td>
+                <Td>{match?.flag_reason ? <span className="text-xs text-zinc-400">{match.flag_reason}</span> : <span className="text-zinc-600">—</span>}</Td>
+                <Td>{match ? <span className="text-zinc-300">{Math.round(match.confidence * 100)}%</span> : <span className="text-zinc-600">—</span>}</Td>
+                <Td className="text-zinc-500">{match ? match.matched_at.slice(0, 16).replace('T', ' ') : '—'}</Td>
+                <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-600">{inv.line_items.length} line item{inv.line_items.length !== 1 ? 's' : ''}</td>
+              </HeaderRow>
+              {inv.line_items.map((li, i) => (
+                <DetailRow key={`${inv.id}-${i}`}>
+                  <DetailTd colSpan={7} />
+                  <DetailTd><span className="font-mono text-zinc-400">{li.sku}</span></DetailTd>
+                  <DetailTd>{li.description}</DetailTd>
+                  <DetailTd>{li.qty}</DetailTd>
+                  <DetailTd>${li.unit_price.toFixed(2)}</DetailTd>
+                </DetailRow>
+              ))}
+            </>
           )
         })}
       </tbody>
