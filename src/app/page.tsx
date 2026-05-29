@@ -213,33 +213,6 @@ export default function Home() {
 
       <main className="mx-auto w-full max-w-screen-xl flex-1 px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-5 border border-zinc-800 bg-zinc-900">
-            <TabsTrigger
-              value="gallery"
-              className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-            >
-              Gallery
-            </TabsTrigger>
-            <TabsTrigger
-              value="eval"
-              className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-            >
-              Eval Mode
-            </TabsTrigger>
-            <TabsTrigger
-              value="db"
-              className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-            >
-              Explore Database
-            </TabsTrigger>
-            <TabsTrigger
-              value="escalations"
-              className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-            >
-              Escalations
-            </TabsTrigger>
-          </TabsList>
-
           <TabsContent value="gallery" className="space-y-5">
             <InvoiceGallery
               selectedId={selectedId}

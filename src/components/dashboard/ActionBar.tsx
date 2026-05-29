@@ -60,15 +60,6 @@ export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onEx
           <Button
             variant="outline"
             size="sm"
-            onClick={onUpload}
-            className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            <Upload className="mr-1.5 h-3.5 w-3.5" />
-            Upload Invoice
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             onClick={onExploreDb}
             className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
@@ -103,6 +94,15 @@ export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onEx
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
             Reset Results
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUpload}
+            className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            Upload Invoice
           </Button>
           <Button
             size="sm"
