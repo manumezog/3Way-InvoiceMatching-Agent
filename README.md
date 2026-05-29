@@ -1,6 +1,6 @@
 # FastPay AI — Autonomous 3-Way Invoice Reconciliation
 
-> An agentic AI back-office worker that reads messy vendor invoices, cross-references them against Purchase Orders and Warehouse Receipts, and autonomously approves or flags them — with reasoning, confidence scores, and full traceability.
+> An agentic AI **Accounts Payable (AP)** back-office worker that reads messy vendor invoices, cross-references them against Purchase Orders and Warehouse Receipts, and autonomously approves or flags them — with reasoning, confidence scores, and full traceability.
 
 **[Live Demo → fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)**
 
@@ -26,7 +26,7 @@ A learning side project exploring real-world **agentic workflows**, **document A
 
 ## The Problem
 
-**3-Way Matching** is one of the most universally painful processes in Accounts Payable and supply chain operations. Every day, AP clerks manually cross-reference three documents for every single vendor invoice:
+**3-Way Matching** is one of the most universally painful processes in **Accounts Payable (AP)** and supply chain operations. Every day, AP clerks manually cross-reference three documents for every single vendor invoice:
 
 1. **Purchase Order (PO)** — what was ordered, at what price
 2. **Warehouse Receipt (WMS)** — what physically arrived at the dock
@@ -36,7 +36,7 @@ Mismatches (shortages, price gouging, duplicate billing, unauthorized line items
 
 ## The Vision
 
-Build a working MVP of an **autonomous AP back-office agent** that can:
+Build a working MVP of an **autonomous Accounts Payable (AP) back-office agent** that can:
 
 - Ingest messy, real-world invoice PDFs (scans, photos, multi-line, foreign currency)
 - Extract structured data using a vision LLM
