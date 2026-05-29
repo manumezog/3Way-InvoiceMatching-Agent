@@ -183,13 +183,13 @@ export async function POST(req: NextRequest): Promise<Response> {
       try {
         await runMigrationsAsync()
 
-        // Save file
+        // Save file to /tmp — Vercel's public/ directory is read-only at runtime
         emit({ type: 'status', message: 'Saving uploaded file…' })
         const id  = randomUUID()
         const filename  = `byoi-${id}${ext}`
-        savePath  = path.join(process.cwd(), 'public', 'invoices', filename)
+        savePath  = path.join('/tmp', filename)
         fs.writeFileSync(savePath, buf)
-        const pdfPath   = `/invoices/${filename}`
+        const pdfPath   = savePath
 
         // Extract
         emit({ type: 'status', message: 'Extracting invoice data with Gemini Vision…' })

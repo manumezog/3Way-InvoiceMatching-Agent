@@ -57,8 +57,8 @@ const EXT_MIME: Record<string, string> = {
 }
 
 export async function extractPdf(pdfPath: string): Promise<ExtractedInvoice> {
-  const absPath = pdfPath.startsWith('/')
-    ? path.join(process.cwd(), 'public', pdfPath)
+  const absPath = pdfPath.startsWith('/tmp/')
+    ? pdfPath
     : path.join(process.cwd(), 'public', pdfPath)
 
   const fileBytes = fs.readFileSync(absPath)
