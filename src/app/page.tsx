@@ -205,6 +205,7 @@ export default function Home() {
         onEvalMode={() => setActiveTab('eval')}
         onUpload={() => setShowUpload(true)}
         onRegenerate={regenerate}
+        onGallery={() => setActiveTab('gallery')}
         onExploreDb={() => setActiveTab('db')}
         onEscalations={() => setActiveTab('escalations')}
         isRunning={isRunning}

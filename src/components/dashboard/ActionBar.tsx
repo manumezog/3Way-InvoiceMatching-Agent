@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle, RefreshCw, Database, AlertTriangle } from 'lucide-react'
+import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle, RefreshCw, Database, AlertTriangle, LayoutGrid } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export interface BatchStats {
@@ -18,11 +18,12 @@ interface ActionBarProps {
   onRegenerate: () => void
   onExploreDb: () => void
   onEscalations: () => void
+  onGallery: () => void
   isRunning: boolean
   batchStats?: BatchStats
 }
 
-export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onExploreDb, onEscalations, isRunning, batchStats }: ActionBarProps) {
+export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onExploreDb, onEscalations, onGallery, isRunning, batchStats }: ActionBarProps) {
   const hasBatchResults = batchStats && batchStats.done > 0
 
   return (
@@ -57,6 +58,15 @@ export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onEx
 
         {/* Right: action buttons */}
         <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onGallery}
+            className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
+            Gallery
+          </Button>
           <Button
             variant="outline"
             size="sm"
