@@ -234,15 +234,24 @@ export function DatabaseExplorer() {
   if (error)   return <p className="p-6 text-sm text-red-400">Error: {error}</p>
   if (!data)   return null
 
+  // Strip ephemeral BYOI data — synthetic POs/WMS/invoices created per upload
+  // accumulate in the DB but don't belong in the ERP-style scenario explorer.
+  const scenarioPos      = data.pos.filter(p => !p.po_number.startsWith('BYOI-'))
+  const scenarioPoIds    = new Set(scenarioPos.map(p => p.id))
+  const scenarioWms      = data.wmsReceipts.filter(w => scenarioPoIds.has(w.po_id))
+  const scenarioInvoices = data.invoices.filter(i => !i.scenario_id?.startsWith('byoi-'))
+  const scenarioInvIds   = new Set(scenarioInvoices.map(i => i.id))
+  const scenarioMatches  = data.matchResults.filter(m => scenarioInvIds.has(m.invoice_id))
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <h2 className="text-sm font-medium text-zinc-300">Database Explorer</h2>
         <div className="flex gap-3 text-xs text-zinc-500">
-          <span>{data.pos.length} POs</span>
-          <span>{data.wmsReceipts.length} WMS receipts</span>
-          <span>{data.invoices.length} invoices</span>
-          <span>{data.matchResults.length} match results</span>
+          <span>{scenarioPos.length} POs</span>
+          <span>{scenarioWms.length} WMS receipts</span>
+          <span>{scenarioInvoices.length} invoices</span>
+          <span>{scenarioMatches.length} match results</span>
         </div>
       </div>
 
@@ -262,17 +271,17 @@ export function DatabaseExplorer() {
         <Card className="mt-3 border-zinc-800 bg-zinc-900/50 p-0 overflow-hidden">
           <TabsContent value="invoices" className="mt-0">
             <ScrollArea className="h-[500px]">
-              <InvoicesTable invoices={data.invoices} matchResults={data.matchResults} pos={data.pos} wmsReceipts={data.wmsReceipts} />
+              <InvoicesTable invoices={scenarioInvoices} matchResults={scenarioMatches} pos={scenarioPos} wmsReceipts={scenarioWms} />
             </ScrollArea>
           </TabsContent>
           <TabsContent value="purchase_orders" className="mt-0">
             <ScrollArea className="h-[500px]">
-              <POsTable pos={data.pos} />
+              <POsTable pos={scenarioPos} />
             </ScrollArea>
           </TabsContent>
           <TabsContent value="wms_receipts" className="mt-0">
             <ScrollArea className="h-[500px]">
-              <WmsTable wmsReceipts={data.wmsReceipts} pos={data.pos} />
+              <WmsTable wmsReceipts={scenarioWms} pos={scenarioPos} />
             </ScrollArea>
           </TabsContent>
         </Card>
