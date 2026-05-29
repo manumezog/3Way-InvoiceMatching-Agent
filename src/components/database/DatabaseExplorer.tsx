@@ -112,7 +112,50 @@ function WmsTable({ wmsReceipts, pos }: { wmsReceipts: WmsReceipt[]; pos: Purcha
   )
 }
 
-function InvoicesTable({ invoices, matchResults }: { invoices: Invoice[]; matchResults: MatchResult[] }) {
+function findImpactedSkus(
+  inv: Invoice,
+  match: MatchResult,
+  pos: PurchaseOrder[],
+  wmsReceipts: WmsReceipt[],
+): Set<string> {
+  const po  = pos.find(p => p.id === match.po_id)
+  const wms = wmsReceipts.find(w => w.id === match.wms_id)
+
+  switch (match.flag_reason) {
+    case 'PRICE_MISMATCH': {
+      if (!po) return new Set()
+      const poPrice = Object.fromEntries(po.line_items.map(li => [li.sku, li.unit_price]))
+      return new Set(
+        inv.line_items
+          .filter(li => poPrice[li.sku] !== undefined && Math.abs(li.unit_price - poPrice[li.sku]) / poPrice[li.sku] > 0.01)
+          .map(li => li.sku)
+      )
+    }
+    case 'SHORTAGE': {
+      if (!wms) return new Set()
+      const rcvd = Object.fromEntries(wms.line_items.map(li => [li.sku, li.received_qty]))
+      return new Set(
+        inv.line_items
+          .filter(li => rcvd[li.sku] !== undefined && li.qty > rcvd[li.sku])
+          .map(li => li.sku)
+      )
+    }
+    case 'UNAUTHORIZED_ITEMS': {
+      if (!po) return new Set()
+      const poSkus = new Set(po.line_items.map(li => li.sku))
+      return new Set(inv.line_items.filter(li => !poSkus.has(li.sku)).map(li => li.sku))
+    }
+    default:
+      return new Set()
+  }
+}
+
+function InvoicesTable({ invoices, matchResults, pos, wmsReceipts }: {
+  invoices: Invoice[]
+  matchResults: MatchResult[]
+  pos: PurchaseOrder[]
+  wmsReceipts: WmsReceipt[]
+}) {
   const matchMap = Object.fromEntries(matchResults.map(m => [m.invoice_id, m]))
   if (!invoices.length) return <p className="p-4 text-sm text-zinc-500">No invoices yet.</p>
   return (
@@ -130,6 +173,7 @@ function InvoicesTable({ invoices, matchResults }: { invoices: Invoice[]; matchR
       <tbody>
         {invoices.map(inv => {
           const match = matchMap[inv.id]
+          const impacted = match && match.status !== 'APPROVED' ? findImpactedSkus(inv, match, pos, wmsReceipts) : new Set<string>()
           return (
             <>
               <HeaderRow key={`h-${inv.id}`}>
@@ -142,15 +186,29 @@ function InvoicesTable({ invoices, matchResults }: { invoices: Invoice[]; matchR
                 <Td className="text-zinc-500">{match ? match.matched_at.slice(0, 16).replace('T', ' ') : '—'}</Td>
                 <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-500">{inv.line_items.length} line item{inv.line_items.length !== 1 ? 's' : ''}</td>
               </HeaderRow>
-              {inv.line_items.map((li, i) => (
-                <DetailRow key={`${inv.id}-${i}`}>
-                  <DetailTd colSpan={7} />
-                  <DetailTd><span className="font-mono text-zinc-400">{li.sku}</span></DetailTd>
-                  <DetailTd>{li.description}</DetailTd>
-                  <DetailTd>{li.qty}</DetailTd>
-                  <DetailTd>${li.unit_price.toFixed(2)}</DetailTd>
-                </DetailRow>
-              ))}
+              {inv.line_items.map((li, i) => {
+                const isImpacted = impacted.has(li.sku)
+                return isImpacted ? (
+                  <tr key={`${inv.id}-${i}`} className="border-b border-red-900/40 bg-red-950/20">
+                    <DetailTd colSpan={7} />
+                    <DetailTd>
+                      <span className="font-mono text-zinc-400">{li.sku}</span>
+                      <span className="ml-1 text-red-400 text-[9px] font-bold">⚠ impacted</span>
+                    </DetailTd>
+                    <DetailTd>{li.description}</DetailTd>
+                    <DetailTd>{li.qty}</DetailTd>
+                    <DetailTd>${li.unit_price.toFixed(2)}</DetailTd>
+                  </tr>
+                ) : (
+                  <DetailRow key={`${inv.id}-${i}`}>
+                    <DetailTd colSpan={7} />
+                    <DetailTd><span className="font-mono text-zinc-400">{li.sku}</span></DetailTd>
+                    <DetailTd>{li.description}</DetailTd>
+                    <DetailTd>{li.qty}</DetailTd>
+                    <DetailTd>${li.unit_price.toFixed(2)}</DetailTd>
+                  </DetailRow>
+                )
+              })}
             </>
           )
         })}
@@ -204,7 +262,7 @@ export function DatabaseExplorer() {
         <Card className="mt-3 border-zinc-800 bg-zinc-900/50 p-0 overflow-hidden">
           <TabsContent value="invoices" className="mt-0">
             <ScrollArea className="h-[500px]">
-              <InvoicesTable invoices={data.invoices} matchResults={data.matchResults} />
+              <InvoicesTable invoices={data.invoices} matchResults={data.matchResults} pos={data.pos} wmsReceipts={data.wmsReceipts} />
             </ScrollArea>
           </TabsContent>
           <TabsContent value="purchase_orders" className="mt-0">

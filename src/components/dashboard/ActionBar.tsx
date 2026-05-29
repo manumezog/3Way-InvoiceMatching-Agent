@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle, RefreshCw, Database } from 'lucide-react'
+import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle, RefreshCw, Database, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export interface BatchStats {
@@ -17,11 +17,12 @@ interface ActionBarProps {
   onUpload: () => void
   onRegenerate: () => void
   onExploreDb: () => void
+  onEscalations: () => void
   isRunning: boolean
   batchStats?: BatchStats
 }
 
-export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onExploreDb, isRunning, batchStats }: ActionBarProps) {
+export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onExploreDb, onEscalations, isRunning, batchStats }: ActionBarProps) {
   const hasBatchResults = batchStats && batchStats.done > 0
 
   return (
@@ -77,6 +78,15 @@ export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onEx
           <Button
             variant="outline"
             size="sm"
+            onClick={onEscalations}
+            className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
+            Escalations
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onEvalMode}
             className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
@@ -89,10 +99,10 @@ export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onEx
             onClick={onRegenerate}
             disabled={isRunning}
             className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white disabled:opacity-40"
-            title="Reset all match results and reprocess"
+            title="Reset all match results"
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Regenerate
+            Reset Results
           </Button>
           <Button
             size="sm"

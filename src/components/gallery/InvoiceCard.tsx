@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { FileText, Camera, ScanLine, PenLine, Layers } from 'lucide-react'
+import { FileText, Camera, ScanLine, PenLine, Layers, Download } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { StaticScenario, PdfVariant } from '@/data/scenarios-static'
@@ -52,9 +52,12 @@ export function InvoiceCard({ scenario, isSelected, isRunning, result, onClick }
   const thumbSrc = `/thumbnails/${scenario.id}.jpg`
 
   return (
-    <button
-      onClick={onClick}
-      disabled={isRunning}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => { if (isRunning) return; onClick() }}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClick() }}
+      aria-disabled={isRunning}
       className={cn(
         'group relative flex w-full flex-col rounded-xl border p-0 text-left transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
@@ -136,7 +139,16 @@ export function InvoiceCard({ scenario, isSelected, isRunning, result, onClick }
             {scenario.skill_tag}
           </Badge>
         </div>
+        <a
+          href={`/invoices/${scenario.id}.pdf`}
+          download={`${scenario.title.toLowerCase().replace(/\s+/g, '-')}.pdf`}
+          onClick={e => e.stopPropagation()}
+          className="mt-1 flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          <Download className="h-3 w-3" />
+          Download PDF
+        </a>
       </div>
-    </button>
+    </div>
   )
 }

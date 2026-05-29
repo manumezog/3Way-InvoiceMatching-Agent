@@ -11,6 +11,7 @@ import { DecisionOutput, type DecisionResult } from '@/components/agent/Decision
 import { EvalDashboard } from '@/components/eval/EvalDashboard'
 import { UploadModal } from '@/components/byoi/UploadModal'
 import { DatabaseExplorer } from '@/components/database/DatabaseExplorer'
+import { EscalationsDashboard } from '@/components/escalations/EscalationsDashboard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
@@ -205,6 +206,7 @@ export default function Home() {
         onUpload={() => setShowUpload(true)}
         onRegenerate={regenerate}
         onExploreDb={() => setActiveTab('db')}
+        onEscalations={() => setActiveTab('escalations')}
         isRunning={isRunning}
         batchStats={batchStats}
       />
@@ -229,6 +231,12 @@ export default function Home() {
               className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
             >
               Explore Database
+            </TabsTrigger>
+            <TabsTrigger
+              value="escalations"
+              className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+            >
+              Escalations
             </TabsTrigger>
           </TabsList>
 
@@ -258,6 +266,10 @@ export default function Home() {
 
           <TabsContent value="db">
             <DatabaseExplorer />
+          </TabsContent>
+
+          <TabsContent value="escalations">
+            <EscalationsDashboard />
           </TabsContent>
         </Tabs>
       </main>
