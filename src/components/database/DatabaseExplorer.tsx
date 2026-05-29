@@ -193,7 +193,7 @@ function InvoicesTable({ invoices, matchResults, pos, wmsReceipts }: {
                     <DetailTd colSpan={7} />
                     <DetailTd>
                       <span className="font-mono text-zinc-400">{li.sku}</span>
-                      <span className="ml-1 text-red-400 text-[9px] font-bold">⚠ impacted</span>
+                      <span className="ml-1 text-red-400 text-[9px] font-bold">⚠</span>
                     </DetailTd>
                     <DetailTd>{li.description}</DetailTd>
                     <DetailTd>{li.qty}</DetailTd>

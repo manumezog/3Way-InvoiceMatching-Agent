@@ -75,7 +75,7 @@ function LineItemsDetail({ inv, match, pos, wmsReceipts }: {
               <tr key={i} className={isHit ? 'bg-red-950/30 border-b border-red-900/30' : 'border-b border-zinc-800/50'}>
                 <td className="px-3 py-1.5 font-mono">
                   <span className={isHit ? 'text-red-300' : 'text-zinc-400'}>{li.sku}</span>
-                  {isHit && <span className="ml-1.5 rounded bg-red-500/20 px-1 py-0.5 text-[9px] font-bold text-red-400">⚠ impacted</span>}
+                  {isHit && <span className="ml-1.5 rounded bg-red-500/20 px-1 py-0.5 text-[9px] font-bold text-red-400">⚠</span>}
                 </td>
                 <td className={`px-3 py-1.5 ${isHit ? 'text-zinc-300' : 'text-zinc-500'}`}>{li.description}</td>
                 <td className={`px-3 py-1.5 text-right ${isHit ? 'text-zinc-300' : 'text-zinc-500'}`}>{li.qty}</td>

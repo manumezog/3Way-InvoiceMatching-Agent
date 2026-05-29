@@ -75,14 +75,36 @@ export async function runAgent(invoiceId: string, emit: EmitFn = () => {}, trace
   done('dup', 'No prior record — proceeding')
 
   // --- Step 3: Extract PDF ---
+  // BYOI invoices: skip re-extraction (the PDF carries the original PO reference, not the
+  // synthetic BYOI PO). Use stored invoice data and point directly to the BYOI PO so the
+  // injected discrepancy is what the agent actually evaluates.
   step('extract', 'extract_pdf()', invoice.pdf_path)
   let extracted
-  try {
-    extracted = await extractPdf(invoice.pdf_path)
-    done('extract', `${extracted.line_items.length} line item(s) · ${extracted.currency}`)
-  } catch (err) {
-    fail('extract', String(err))
-    throw err
+  if (invoice.scenario_id?.startsWith('byoi-')) {
+    const byoiUuid   = invoice.scenario_id.slice(5)
+    const byoiPoRef  = `BYOI-${byoiUuid.slice(0, 6).toUpperCase()}`
+    const subtotal   = invoice.line_items.reduce((s, li) => s + li.qty * li.unit_price, 0)
+    extracted = {
+      invoice_number: invoice.invoice_number,
+      vendor_name:    invoice.vendor_name,
+      currency:       invoice.currency,
+      po_reference:   byoiPoRef,
+      line_items:     invoice.line_items,
+      subtotal,
+      tax_amount:     0,
+      total:          subtotal,
+      invoice_date:   null,
+      notes:          null,
+    }
+    done('extract', `${extracted.line_items.length} line item(s) · ${extracted.currency} (BYOI — using stored data)`)
+  } else {
+    try {
+      extracted = await extractPdf(invoice.pdf_path)
+      done('extract', `${extracted.line_items.length} line item(s) · ${extracted.currency}`)
+    } catch (err) {
+      fail('extract', String(err))
+      throw err
+    }
   }
 
   // --- Step 4: Lookup PO ---
