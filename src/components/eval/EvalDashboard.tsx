@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FlaskConical, Play, CheckCircle2, XCircle, Minus, ArrowRight } from 'lucide-react'
+import { FlaskConical, Play, CheckCircle2, XCircle, Minus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
 import { cn } from '@/lib/utils'
@@ -244,20 +244,25 @@ function RunsTable({ runs }: { runs: EvalRun[] }) {
               </span>
 
               {/* Title */}
-              <span className="min-w-0 flex-1 truncate text-xs text-zinc-300">{scenario.title}</span>
+              <span className="min-w-0 flex-1 truncate text-xs text-zinc-100">{scenario.title}</span>
 
               {/* Status chip(s) */}
               <div className="flex shrink-0 items-center gap-1">
                 {run && run.actual !== run.expected ? (
-                  <>
-                    <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[scenario.ground_truth as MatchStatus])}>
-                      {scenario.ground_truth}
-                    </span>
-                    <ArrowRight className="h-3 w-3 text-zinc-600" />
-                    <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[run.actual as MatchStatus])}>
-                      {run.actual}
-                    </span>
-                  </>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] text-zinc-500">expected</span>
+                      <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[scenario.ground_truth as MatchStatus])}>
+                        {scenario.ground_truth}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] text-zinc-500">got</span>
+                      <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[run.actual as MatchStatus])}>
+                        {run.actual}
+                      </span>
+                    </div>
+                  </div>
                 ) : (
                   <span className={cn(
                     'rounded px-1.5 py-0.5 text-[10px] font-semibold',
@@ -270,7 +275,7 @@ function RunsTable({ runs }: { runs: EvalRun[] }) {
 
               {/* Confidence · latency */}
               {run && (
-                <span className="shrink-0 font-mono text-[10px] text-zinc-600">
+                <span className="shrink-0 font-mono text-[10px] text-zinc-400">
                   {pct(run.confidence)} · {ms(run.durationMs)}
                 </span>
               )}
