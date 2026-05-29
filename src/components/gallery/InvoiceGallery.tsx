@@ -20,7 +20,7 @@ export function InvoiceGallery({ selectedId, runningId, results, onSelect }: Inv
         <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Invoice Gallery
         </h2>
-        <span className="text-xs text-zinc-600">
+        <span className="text-xs text-zinc-400">
           {doneCount > 0 ? `${doneCount}/${STATIC_SCENARIOS.length} processed` : `${STATIC_SCENARIOS.length} invoices`}
         </span>
       </div>

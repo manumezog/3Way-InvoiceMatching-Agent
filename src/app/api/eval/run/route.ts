@@ -103,9 +103,19 @@ export async function POST(): Promise<Response> {
       const evalRuns: EvalRun[] = []
 
       for (const scenario of STATIC_SCENARIOS) {
-        const invoice = invoices.find(i => i.scenario_id === scenario.id)
+        // Primary: match by scenario_id (set during seed)
+        // Fallback: match by invoice_number — guards against rows seeded before scenario_id column existed.
+        // For scenarios that share an invoice_number (01 and 07), prefer the row whose scenario_id matches.
+        let invoice = invoices.find(i => i.scenario_id === scenario.id)
         if (!invoice) {
-          send({ type: 'skip', scenarioId: scenario.id, reason: 'invoice not found in DB' })
+          const byNumber = invoices.filter(i => i.invoice_number === scenario.invoice_number)
+          // Prefer any row not already claimed by another scenario's exact scenario_id match
+          invoice = byNumber.find(i => !STATIC_SCENARIOS.some(s => s.id !== scenario.id && i.scenario_id === s.id))
+            ?? byNumber[0]
+            ?? null
+        }
+        if (!invoice) {
+          send({ type: 'skip', scenarioId: scenario.id, reason: 'Invoice not found in DB — run the seed script to populate data.' })
           continue
         }
 

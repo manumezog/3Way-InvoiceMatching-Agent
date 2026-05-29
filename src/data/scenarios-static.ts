@@ -9,6 +9,7 @@ export interface StaticScenario {
   skill_tag: string
   pdf_variant: PdfVariant
   vendor: string
+  invoice_number: string
   ground_truth: GroundTruthStatus
   flag_reason?: string
 }
@@ -21,6 +22,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Baseline',
     pdf_variant: 'clean',
     vendor: 'Apex Logistics',
+    invoice_number: 'APX-INV-2024-0391',
     ground_truth: 'APPROVED',
   },
   {
@@ -30,6 +32,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Vision OCR',
     pdf_variant: 'photo',
     vendor: 'Northwind Components',
+    invoice_number: 'NWC-2024-00892',
     ground_truth: 'APPROVED',
   },
   {
@@ -39,6 +42,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Fuzzy Matching',
     pdf_variant: 'clean',
     vendor: 'ACME Corp.',
+    invoice_number: 'ACME-24-7741',
     ground_truth: 'APPROVED',
     flag_reason: 'Low-confidence match',
   },
@@ -49,6 +53,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Multi-Line Reasoning',
     pdf_variant: 'clean',
     vendor: 'Crestline Supply',
+    invoice_number: 'CSP-2024-2201',
     ground_truth: 'FLAGGED',
     flag_reason: 'SHORTAGE',
   },
@@ -59,6 +64,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'FX Conversion',
     pdf_variant: 'clean',
     vendor: 'EuroTech GmbH',
+    invoice_number: 'ET-RE-2024-0088',
     ground_truth: 'FLAGGED',
     flag_reason: 'FX_CONVERSION',
   },
@@ -69,6 +75,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Vision + Judgment',
     pdf_variant: 'handwritten',
     vendor: 'Pinnacle Parts',
+    invoice_number: 'PNP-INV-1047',
     ground_truth: 'ESCALATED',
   },
   {
@@ -78,6 +85,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Fraud Detection',
     pdf_variant: 'clean',
     vendor: 'Apex Logistics',
+    invoice_number: 'APX-INV-2024-0391',
     ground_truth: 'FLAGGED',
     flag_reason: 'DUPLICATE',
   },
@@ -88,6 +96,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Unauthorized Items',
     pdf_variant: 'clean',
     vendor: 'Ironstone Trading',
+    invoice_number: 'IRT-2024-0551',
     ground_truth: 'FLAGGED',
     flag_reason: 'UNAUTHORIZED_ITEMS',
   },
@@ -98,6 +107,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Arithmetic Reasoning',
     pdf_variant: 'scanned',
     vendor: 'Meridian Supplies',
+    invoice_number: 'MER-INV-7734',
     ground_truth: 'FLAGGED',
     flag_reason: 'TAX_MISMATCH',
   },
@@ -108,6 +118,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Price Mismatch',
     pdf_variant: 'clean',
     vendor: 'Crestline Supply',
+    invoice_number: 'CSP-2024-2267',
     ground_truth: 'FLAGGED',
     flag_reason: 'PRICE_MISMATCH',
   },
@@ -118,6 +129,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Anti-Fraud Logic',
     pdf_variant: 'crumpled',
     vendor: 'Apax Logistics Inc.',
+    invoice_number: 'APX-INV-2024-0412',
     ground_truth: 'ESCALATED',
   },
   {
@@ -127,6 +139,7 @@ export const STATIC_SCENARIOS: StaticScenario[] = [
     skill_tag: 'Timeliness Check',
     pdf_variant: 'clean',
     vendor: 'Northwind Components',
+    invoice_number: 'NWC-2024-01105',
     ground_truth: 'APPROVED',
   },
 ]

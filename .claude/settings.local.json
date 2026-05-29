@@ -44,7 +44,16 @@
       "Bash(curl -s -N -X POST http://localhost:3000/api/agent/stream -H 'Content-Type: application/json' -d '{\"scenarioId\":\"scenario-04\"}' --max-time 60)",
       "Bash(curl *)",
       "Bash(git commit -m 'docs: mark Phase 5 complete in roadmap *)",
-      "Bash(node -e \"require\\('framer-motion'\\)\")"
+      "Bash(node -e \"require\\('framer-motion'\\)\")",
+      "Bash(git commit *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(awk '{sum += $1} END {print \"Total:\", sum, \"KB\"}')",
+      "Bash(node -e \"console.log\\(require\\('@neondatabase/serverless/package.json'\\).version\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const {Langfuse} = require\\('langfuse'\\); const lf = new Langfuse\\({publicKey:'x',secretKey:'x'}\\); console.log\\(Object.keys\\(lf.api\\).filter\\(k => k.toLowerCase\\(\\).includes\\('project'\\)\\)\\)\")",
+      "Bash(node -e \"const {Langfuse} = require\\('langfuse'\\); const lf = new Langfuse\\({publicKey:'x',secretKey:'x'}\\); lf.api.projectsGet\\(\\).then\\(r => console.log\\(JSON.stringify\\(r\\)\\)\\).catch\\(e => console.log\\('error shape:', e.constructor.name, Object.keys\\(e\\)\\)\\)\")",
+      "Bash(node -e \"const {Langfuse} = require\\('langfuse'\\); const lf = new Langfuse\\({publicKey:'x',secretKey:'x'}\\); console.log\\(typeof lf.api.projectsGet\\)\")"
     ]
   }
 }

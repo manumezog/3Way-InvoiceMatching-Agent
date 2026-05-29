@@ -56,7 +56,7 @@ export function TracePanel({ steps, isIdle }: TracePanelProps) {
               key="counter"
               initial={{ opacity: 0, x: 4 }}
               animate={{ opacity: 1, x: 0 }}
-              className="ml-auto text-[10px] text-zinc-600"
+              className="ml-auto text-[10px] text-zinc-400"
             >
               {doneCount}/{steps.length} steps
             </motion.span>
@@ -76,8 +76,8 @@ export function TracePanel({ steps, isIdle }: TracePanelProps) {
                 exit={{ opacity: 0 }}
                 className="flex h-32 flex-col items-center justify-center gap-2 text-center"
               >
-                <Terminal className="h-6 w-6 text-zinc-700" />
-                <p className="text-xs text-zinc-600">
+                <Terminal className="h-6 w-6 text-zinc-600" />
+                <p className="text-xs text-zinc-500">
                   Click any invoice card to run the agent
                 </p>
               </motion.div>
@@ -107,7 +107,7 @@ export function TracePanel({ steps, isIdle }: TracePanelProps) {
                             <motion.p
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
-                              className="mt-0.5 truncate text-[10px] text-zinc-600"
+                              className="mt-0.5 truncate text-[10px] text-zinc-400"
                             >
                               {step.detail}
                             </motion.p>

@@ -87,7 +87,7 @@ export function DecisionOutput({ result, isRunning }: DecisionOutputProps) {
               animate={{ opacity: 1 }}
               className="ml-auto flex items-center gap-2"
             >
-              <span className="flex items-center gap-1 text-[10px] text-zinc-600">
+              <span className="flex items-center gap-1 text-[10px] text-zinc-400">
                 <Clock className="h-3 w-3" />
                 {(result.durationMs / 1000).toFixed(1)}s
               </span>
@@ -120,8 +120,8 @@ export function DecisionOutput({ result, isRunning }: DecisionOutputProps) {
               exit={{ opacity: 0 }}
               className="flex h-32 flex-col items-center justify-center gap-2 text-center"
             >
-              <Gauge className="h-6 w-6 text-zinc-700" />
-              <p className="text-xs text-zinc-600">Awaiting agent run…</p>
+              <Gauge className="h-6 w-6 text-zinc-600" />
+              <p className="text-xs text-zinc-500">Awaiting agent run…</p>
             </motion.div>
           )}
 

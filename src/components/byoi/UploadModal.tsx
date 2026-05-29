@@ -232,12 +232,12 @@ export function UploadModal({ onClose }: UploadModalProps) {
                       : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/40',
                   )}
                 >
-                  <FileText className={cn('h-8 w-8', isDragging ? 'text-emerald-400' : 'text-zinc-600')} />
+                  <FileText className={cn('h-8 w-8', isDragging ? 'text-emerald-400' : 'text-zinc-400')} />
                   <div className="text-center">
                     <p className="text-sm font-medium text-zinc-300">
                       {isDragging ? 'Drop to upload' : 'Drop invoice here'}
                     </p>
-                    <p className="mt-1 text-[11px] text-zinc-600">PDF, JPEG, PNG or WEBP · max 10 MB</p>
+                    <p className="mt-1 text-[11px] text-zinc-400">PDF, JPEG, PNG or WEBP · max 10 MB</p>
                   </div>
                   <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
                     Browse file
@@ -320,7 +320,7 @@ export function UploadModal({ onClose }: UploadModalProps) {
                               {s.label}
                             </span>
                             {s.detail && (
-                              <span className="truncate text-[10px] text-zinc-600">{s.detail}</span>
+                              <span className="truncate text-[10px] text-zinc-400">{s.detail}</span>
                             )}
                           </motion.li>
                         ))}
@@ -360,7 +360,7 @@ export function UploadModal({ onClose }: UploadModalProps) {
                           <p className="mt-1.5 text-xs leading-relaxed text-zinc-300">
                             {result.explanation}
                           </p>
-                          <p className="mt-1 text-[10px] text-zinc-600">
+                          <p className="mt-1 text-[10px] text-zinc-400">
                             Confidence: {Math.round(result.confidence * 100)}% · {(result.durationMs / 1000).toFixed(1)}s
                           </p>
                         </div>

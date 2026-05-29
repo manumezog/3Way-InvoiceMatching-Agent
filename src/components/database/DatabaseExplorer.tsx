@@ -61,7 +61,7 @@ function POsTable({ pos }: { pos: PurchaseOrder[] }) {
               <Td>{po.vendor_name}</Td>
               <Td>{po.currency}</Td>
               <Td className="text-zinc-500">{po.created_at.slice(0, 10)}</Td>
-              <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-600">{po.line_items.length} line item{po.line_items.length !== 1 ? 's' : ''}</td>
+              <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-500">{po.line_items.length} line item{po.line_items.length !== 1 ? 's' : ''}</td>
             </HeaderRow>
             {po.line_items.map((li, i) => (
               <DetailRow key={`${po.id}-${i}`}>
@@ -96,7 +96,7 @@ function WmsTable({ wmsReceipts, pos }: { wmsReceipts: WmsReceipt[]; pos: Purcha
             <HeaderRow key={`h-${r.id}`}>
               <Td><span className="font-mono text-zinc-200">{poMap[r.po_id] ?? r.po_id.slice(0, 8)}</span></Td>
               <Td className="text-zinc-500">{r.received_at.slice(0, 16).replace('T', ' ')}</Td>
-              <td colSpan={2} className="px-3 py-2 text-[11px] text-zinc-600">{r.line_items.length} line item{r.line_items.length !== 1 ? 's' : ''}</td>
+              <td colSpan={2} className="px-3 py-2 text-[11px] text-zinc-500">{r.line_items.length} line item{r.line_items.length !== 1 ? 's' : ''}</td>
             </HeaderRow>
             {r.line_items.map((li, i) => (
               <DetailRow key={`${r.id}-${i}`}>
@@ -140,7 +140,7 @@ function InvoicesTable({ invoices, matchResults }: { invoices: Invoice[]; matchR
                 <Td>{match?.flag_reason ? <span className="text-xs text-zinc-400">{match.flag_reason}</span> : <span className="text-zinc-600">—</span>}</Td>
                 <Td>{match ? <span className="text-zinc-300">{Math.round(match.confidence * 100)}%</span> : <span className="text-zinc-600">—</span>}</Td>
                 <Td className="text-zinc-500">{match ? match.matched_at.slice(0, 16).replace('T', ' ') : '—'}</Td>
-                <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-600">{inv.line_items.length} line item{inv.line_items.length !== 1 ? 's' : ''}</td>
+                <td colSpan={4} className="px-3 py-2 text-[11px] text-zinc-500">{inv.line_items.length} line item{inv.line_items.length !== 1 ? 's' : ''}</td>
               </HeaderRow>
               {inv.line_items.map((li, i) => (
                 <DetailRow key={`${inv.id}-${i}`}>

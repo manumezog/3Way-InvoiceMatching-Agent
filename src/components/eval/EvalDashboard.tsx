@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FlaskConical, Play, CheckCircle2, XCircle, Minus } from 'lucide-react'
+import { FlaskConical, Play, CheckCircle2, XCircle, Minus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ async function streamEval(
   onProgress: (p: ProgressState) => void,
   onResult:   (r: EvalRun) => void,
   onComplete: (m: EvalMetrics) => void,
+  onSkip:     (scenarioId: string, reason: string) => void,
 ): Promise<void> {
   const res = await fetch('/api/eval/run', { method: 'POST' })
   if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
@@ -41,6 +42,7 @@ async function streamEval(
         if      (data.type === 'progress') onProgress({ done: data.done, total: data.total })
         else if (data.type === 'result')   onResult(data as EvalRun)
         else if (data.type === 'complete') onComplete(data.metrics as EvalMetrics)
+        else if (data.type === 'skip')     onSkip(data.scenarioId, data.reason)
       } catch { /* skip malformed */ }
     }
   }
@@ -118,12 +120,12 @@ function ConfusionMatrix({ matrix }: { matrix: EvalMetrics['confusionMatrix'] })
     <div>
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
         Confusion Matrix
-        <span className="ml-1.5 normal-case font-normal text-zinc-700">rows = actual · cols = predicted</span>
+        <span className="ml-1.5 normal-case font-normal text-zinc-500">rows = actual · cols = predicted</span>
       </p>
       <table className="w-full text-center text-sm">
         <thead>
           <tr>
-            <th className="pb-2 pr-3 text-left text-[10px] text-zinc-700" />
+            <th className="pb-2 pr-3 text-left text-[10px] text-zinc-500" />
             {classes.map(c => (
               <th key={c} className={cn('pb-2 text-xs font-bold', STATUS_COLOR[c])}>{short[c]}</th>
             ))}
@@ -182,7 +184,7 @@ function PerClassTable({ perClass }: { perClass: EvalMetrics['perClass'] }) {
             <div key={cls} className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className={cn('text-xs font-bold', STATUS_COLOR[cls])}>{cls}</span>
-                <span className="text-[10px] text-zinc-600">{m.support} sample{m.support !== 1 ? 's' : ''}</span>
+                <span className="text-[10px] text-zinc-400">{m.support} sample{m.support !== 1 ? 's' : ''}</span>
               </div>
               {/* F1 bar */}
               <div className="mb-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
@@ -209,15 +211,16 @@ function PerClassTable({ perClass }: { perClass: EvalMetrics['perClass'] }) {
 // ---------------------------------------------------------------------------
 // Per-scenario results
 // ---------------------------------------------------------------------------
-function RunsTable({ runs }: { runs: EvalRun[] }) {
+function RunsTable({ runs, skipped }: { runs: EvalRun[]; skipped: Record<string, string> }) {
   return (
     <div>
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Per-Scenario Results</p>
       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {STATIC_SCENARIOS.map(scenario => {
-          const run      = runs.find(r => r.scenarioId === scenario.id)
-          const isPending = !run
-          const isCorrect = run?.correct
+          const run        = runs.find(r => r.scenarioId === scenario.id)
+          const skipReason = skipped[scenario.id]
+          const isPending  = !run && !skipReason
+          const isCorrect  = run?.correct
 
           return (
             <motion.div
@@ -227,51 +230,59 @@ function RunsTable({ runs }: { runs: EvalRun[] }) {
               transition={{ duration: 0.15 }}
               className={cn(
                 'flex items-center gap-2.5 rounded-lg border px-3 py-2.5',
-                isPending
-                  ? 'border-zinc-800/60 bg-zinc-950/30'
-                  : isCorrect
-                    ? 'border-emerald-900/40 bg-emerald-950/20'
-                    : 'border-red-900/40 bg-red-950/15',
+                skipReason
+                  ? 'border-amber-900/40 bg-amber-950/10'
+                  : isPending
+                    ? 'border-zinc-800/60 bg-zinc-950/30'
+                    : isCorrect
+                      ? 'border-emerald-900/40 bg-emerald-950/20'
+                      : 'border-red-900/40 bg-red-950/15',
               )}
             >
               {/* Icon */}
               <span className="shrink-0">
-                {isPending
-                  ? <Minus className="h-3.5 w-3.5 text-zinc-700" />
-                  : isCorrect
-                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    : <XCircle className="h-3.5 w-3.5 text-red-500" />}
+                {skipReason
+                  ? <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                  : isPending
+                    ? <Minus className="h-3.5 w-3.5 text-zinc-500" />
+                    : isCorrect
+                      ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      : <XCircle className="h-3.5 w-3.5 text-red-500" />}
               </span>
 
               {/* Title */}
               <span className="min-w-0 flex-1 truncate text-xs text-zinc-100">{scenario.title}</span>
 
-              {/* Status chip(s) */}
-              <div className="flex shrink-0 items-center gap-1">
-                {run && run.actual !== run.expected ? (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[9px] text-zinc-500">expected</span>
-                      <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[scenario.ground_truth as MatchStatus])}>
-                        {scenario.ground_truth}
-                      </span>
+              {/* Skipped reason OR status chips */}
+              {skipReason ? (
+                <span className="shrink-0 text-[10px] text-amber-400">{skipReason}</span>
+              ) : (
+                <div className="flex shrink-0 items-center gap-1">
+                  {run && run.actual !== run.expected ? (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] text-zinc-500">expected</span>
+                        <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[scenario.ground_truth as MatchStatus])}>
+                          {scenario.ground_truth}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] text-zinc-500">got</span>
+                        <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[run.actual as MatchStatus])}>
+                          {run.actual}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[9px] text-zinc-500">got</span>
-                      <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', STATUS_CHIP[run.actual as MatchStatus])}>
-                        {run.actual}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <span className={cn(
-                    'rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                    run ? STATUS_CHIP[scenario.ground_truth as MatchStatus] : 'text-zinc-600',
-                  )}>
-                    {scenario.ground_truth}
-                  </span>
-                )}
-              </div>
+                  ) : (
+                    <span className={cn(
+                      'rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                      run ? STATUS_CHIP[scenario.ground_truth as MatchStatus] : 'text-zinc-500',
+                    )}>
+                      {scenario.ground_truth}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Confidence · latency */}
               {run && (
@@ -294,6 +305,7 @@ export function EvalDashboard() {
   const [isRunning,    setIsRunning]    = useState(false)
   const [progress,     setProgress]     = useState<ProgressState | null>(null)
   const [partialRuns,  setPartialRuns]  = useState<EvalRun[]>([])
+  const [skipped,      setSkipped]      = useState<Record<string, string>>({})
   const [metrics,      setMetrics]      = useState<EvalMetrics | null>(null)
 
   const runEval = useCallback(async () => {
@@ -301,6 +313,7 @@ export function EvalDashboard() {
     setIsRunning(true)
     setProgress({ done: 0, total: STATIC_SCENARIOS.length })
     setPartialRuns([])
+    setSkipped({})
     setMetrics(null)
 
     try {
@@ -311,6 +324,7 @@ export function EvalDashboard() {
           setProgress(prev => prev ? { ...prev, done: prev.done + 1 } : prev)
         },
         m  => setMetrics(m),
+        (id, reason) => setSkipped(prev => ({ ...prev, [id]: reason })),
       )
     } catch (err) {
       console.error('Eval failed:', err)
@@ -361,7 +375,7 @@ export function EvalDashboard() {
                   ? `Running scenario ${progress.done + 1} of ${progress.total}…`
                   : 'Computing metrics…'}
               </span>
-              <span className="font-mono text-zinc-600">{progress.done}/{progress.total}</span>
+              <span className="font-mono text-zinc-400">{progress.done}/{progress.total}</span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
               <motion.div
@@ -372,7 +386,7 @@ export function EvalDashboard() {
             </div>
             {runsToShow.length > 0 && (
               <div className="mt-4">
-                <RunsTable runs={runsToShow} />
+                <RunsTable runs={runsToShow} skipped={skipped} />
               </div>
             )}
           </motion.div>
@@ -416,7 +430,7 @@ export function EvalDashboard() {
 
             {/* Per-scenario */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-              <RunsTable runs={metrics.runs} />
+              <RunsTable runs={metrics.runs} skipped={skipped} />
             </div>
           </motion.div>
         )}
@@ -425,12 +439,12 @@ export function EvalDashboard() {
       {/* ── Idle ── */}
       {!isRunning && !metrics && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-10 text-center">
-          <FlaskConical className="mx-auto mb-3 h-9 w-9 text-zinc-700" />
+          <FlaskConical className="mx-auto mb-3 h-9 w-9 text-zinc-600" />
           <p className="text-sm text-zinc-400">
             Click <span className="font-semibold text-zinc-200">Run Eval</span> to benchmark the agent
             against all {STATIC_SCENARIOS.length} ground-truth scenarios.
           </p>
-          <p className="mt-1.5 text-xs text-zinc-700">
+          <p className="mt-1.5 text-xs text-zinc-500">
             Clears prior results · re-runs fresh · computes accuracy, F1, latency & confusion matrix
           </p>
         </div>

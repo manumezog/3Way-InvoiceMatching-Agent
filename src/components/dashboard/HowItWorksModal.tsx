@@ -103,7 +103,7 @@ export function HowItWorksModal({ onClose }: HowItWorksModalProps) {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-mono text-zinc-600">0{i + 1}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">0{i + 1}</span>
                       <p className="text-xs font-semibold text-zinc-200">{step.title}</p>
                     </div>
                     <p className="text-[11px] leading-relaxed text-zinc-500">{step.desc}</p>
@@ -115,7 +115,7 @@ export function HowItWorksModal({ onClose }: HowItWorksModalProps) {
 
           {/* Tech stack footer */}
           <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-4 py-3">
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-zinc-600">Stack</p>
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-zinc-500">Stack</p>
             <div className="flex flex-wrap gap-2">
               {[
                 'Next.js 14', 'TypeScript', 'Gemini 2.5 Flash',
