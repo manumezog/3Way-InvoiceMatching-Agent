@@ -10,6 +10,7 @@ import { TracePanel, type TraceStep } from '@/components/agent/TracePanel'
 import { DecisionOutput, type DecisionResult } from '@/components/agent/DecisionOutput'
 import { EvalDashboard } from '@/components/eval/EvalDashboard'
 import { UploadModal } from '@/components/byoi/UploadModal'
+import { DatabaseExplorer } from '@/components/database/DatabaseExplorer'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { STATIC_SCENARIOS } from '@/data/scenarios-static'
@@ -139,6 +140,17 @@ export default function Home() {
     }
   }, [isRunning, applyStep])
 
+  const regenerate = useCallback(async () => {
+    if (isRunning) return
+    await fetch('/api/reset', { method: 'POST' })
+    setResults({})
+    setBatchStats(undefined)
+    setSelectedId(null)
+    setTraceSteps([])
+    setDecisionResult(null)
+    setActiveTab('gallery')
+  }, [isRunning])
+
   const runBatch = useCallback(async () => {
     if (isRunning) return
     setIsRunning(true)
@@ -191,6 +203,8 @@ export default function Home() {
         onRunBatch={runBatch}
         onEvalMode={() => setActiveTab('eval')}
         onUpload={() => setShowUpload(true)}
+        onRegenerate={regenerate}
+        onExploreDb={() => setActiveTab('db')}
         isRunning={isRunning}
         batchStats={batchStats}
       />
@@ -209,6 +223,12 @@ export default function Home() {
               className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
             >
               Eval Mode
+            </TabsTrigger>
+            <TabsTrigger
+              value="db"
+              className="text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+            >
+              Explore Database
             </TabsTrigger>
           </TabsList>
 
@@ -234,6 +254,10 @@ export default function Home() {
 
           <TabsContent value="eval">
             <EvalDashboard />
+          </TabsContent>
+
+          <TabsContent value="db">
+            <DatabaseExplorer />
           </TabsContent>
         </Tabs>
       </main>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle } from 'lucide-react'
+import { Play, BarChart3, Upload, CheckCircle2, ShieldAlert, AlertCircle, RefreshCw, Database } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export interface BatchStats {
@@ -15,11 +15,13 @@ interface ActionBarProps {
   onRunBatch: () => void
   onEvalMode: () => void
   onUpload: () => void
+  onRegenerate: () => void
+  onExploreDb: () => void
   isRunning: boolean
   batchStats?: BatchStats
 }
 
-export function ActionBar({ onRunBatch, onEvalMode, onUpload, isRunning, batchStats }: ActionBarProps) {
+export function ActionBar({ onRunBatch, onEvalMode, onUpload, onRegenerate, onExploreDb, isRunning, batchStats }: ActionBarProps) {
   const hasBatchResults = batchStats && batchStats.done > 0
 
   return (
@@ -66,11 +68,31 @@ export function ActionBar({ onRunBatch, onEvalMode, onUpload, isRunning, batchSt
           <Button
             variant="outline"
             size="sm"
+            onClick={onExploreDb}
+            className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            <Database className="mr-1.5 h-3.5 w-3.5" />
+            Explore Database
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onEvalMode}
             className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
             <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
             Eval Mode
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRegenerate}
+            disabled={isRunning}
+            className="border-zinc-700 bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white disabled:opacity-40"
+            title="Reset all match results and reprocess"
+          >
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+            Regenerate
           </Button>
           <Button
             size="sm"
