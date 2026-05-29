@@ -59,10 +59,9 @@ The end product is **frictionless**: a recruiter, hiring manager, or curious vis
 | **Language** | TypeScript | Type safety for agent state, tool schemas, matching logic |
 | **Styling** | Tailwind CSS + shadcn/ui | Clean, professional dashboard aesthetic with zero cost |
 | **Database** | SQLite (`better-sqlite3`) → Neon Postgres | $0 locally; one env-var flip to scale to enterprise |
-| **AI Model (Primary)** | Google **Gemini 2.5 Flash** | Generous free tier (15 RPM, 1M TPD); vision-capable |
-| **AI Model (Fallback)** | OpenRouter (Llama / Gemini routes) | Provider redundancy |
-| **PDF Vision Extraction** | Gemini 2.5 Flash multimodal | Native PDF + image understanding |
-| **Embeddings** | Gemini `text-embedding-004` (free tier) | Fuzzy vendor and SKU matching |
+| **AI Model** | Google **Gemini 2.5 Flash Lite** | Generous free tier; vision-capable; fast |
+| **PDF Vision Extraction** | Gemini multimodal | Native PDF + image understanding |
+| **Embeddings** | Gemini `gemini-embedding-001` | Fuzzy vendor and SKU matching |
 | **Agent Observability** | Langfuse (free tier) | Trace every step, tool call, token, latency |
 | **Rate Limiting** | Upstash Redis (free tier) | IP-based throttling at the edge |
 | **Animation** | Framer Motion | Smooth trace reveal, batch processing animation |
@@ -85,6 +84,8 @@ flowchart TD
             STREAM["/api/agent/stream\nSSE · per-scenario"]
             EVAL["/api/eval/run\nSSE · all 12 scenarios"]
             BYOI["/api/agent/byoi\nSSE · user upload"]
+            BROWSE["/api/db/browse\nGET · explorer data"]
+            RESET["/api/reset\nPOST · clear results"]
         end
 
         subgraph Orchestrator["Agent Orchestrator (orchestrator.ts)"]
@@ -102,7 +103,7 @@ flowchart TD
     end
 
     subgraph External["External Services"]
-        GEMINI["Google Gemini 2.5 Flash\n(Vision + Text)"]
+        GEMINI["Google Gemini 2.5 Flash Lite\n(Vision + Text)"]
         NEON["Neon Postgres\nPOs · WMS · Invoices\nMatch Results"]
         LANGFUSE["Langfuse EU\nTrace · Spans · Tokens"]
         UPSTASH["Upstash Redis\nRate limit counters"]
@@ -133,14 +134,15 @@ flowchart TD
 
 ### Core Agentic Capabilities
 
-- **Vision-based PDF extraction** — handles digital PDFs, scans, phone photos
-- **Tool-using agent loop** — extract → lookup → query → fuzzy-match → reason → decide → escalate
+- **Vision-based PDF extraction** — handles digital PDFs, scans, phone photos, handwritten annotations
+- **Tool-using agent loop** — extract → lookup → query → fuzzy-match → convert → reason → decide → escalate
 - **Fuzzy vendor & SKU matching** via embeddings + cosine similarity
 - **Currency conversion** tool with cached FX rates
 - **Duplicate invoice detection** (fraud prevention)
 - **Confidence scoring** with calibration
 - **Human-in-the-loop escalation** for low-confidence cases
 - **Natural language reasoning** for every decision
+- **BYOI (Bring Your Own Invoice)** — upload any real invoice; a synthetic PO + WMS is generated with one injected discrepancy for the agent to find
 
 ### Decision Logic (Deterministic Rules + LLM Reasoning)
 
@@ -150,215 +152,185 @@ flowchart TD
 | WMS qty < Invoice qty | **FLAGGED — SHORTAGE** |
 | Invoice price > PO price | **FLAGGED — PRICE MISMATCH** |
 | Vendor name doesn't match PO vendor (fuzzy threshold) | **FLAGGED — VENDOR MISMATCH** |
-| Currency differs and conversion needed | **REVIEW — FX CONVERSION** |
+| Currency differs and conversion needed | **FLAGGED — FX CONVERSION** |
 | Invoice line items not in PO | **FLAGGED — UNAUTHORIZED ITEMS** |
 | Hash matches a previously processed invoice | **FLAGGED — DUPLICATE** |
+| Tax totals don't match line-item arithmetic | **FLAGGED — TAX MISMATCH** |
 | Confidence < threshold | **ESCALATED — HUMAN REVIEW** |
+
+### UI Views
+
+| View | Description |
+|---|---|
+| **Gallery** | 12 invoice cards with thumbnails, difficulty badges, skill tags, download links. Click any card to run the agent live. |
+| **Eval Mode** | Benchmark all 12 scenarios against ground-truth labels. Streams per-scenario results; computes accuracy, macro F1, per-class precision/recall, confusion matrix, p50/p95 latency. |
+| **Database Explorer** | Browse all POs, WMS receipts, and invoices directly — ERP-style header/detail rows showing each line item. Invoices tab highlights the specific impacted SKUs (⚠) for non-approved decisions. |
+| **Escalations** | Deep-dive view of every FLAGGED and ESCALATED invoice. Shows flag reason, agent explanation, confidence, and per-line-item breakdown with impacted SKUs highlighted in red. |
 
 ---
 
 ## The Invoice Gallery
 
-The gallery is the heart of the demo experience. 8-12 hand-crafted, real-looking PDF invoices, each curated to showcase a specific agent capability. Each card displays a PDF thumbnail, a difficulty badge, and a skill tag.
+12 hand-crafted, real-looking PDF invoices — each designed to test a specific agent capability. POs and WMS receipts have **1–3 line items** each for realistic multi-SKU matching.
 
-| # | Invoice Scenario | Skill Demonstrated | Expected Outcome |
+| # | Scenario | Skill | Expected |
 |---|---|---|---|
 | 1 | Clean digital PDF, all matches | Baseline happy path | APPROVED |
-| 2 | Phone-photo of crumpled invoice | Vision OCR resilience | APPROVED |
-| 3 | Vendor "ACME Corp." vs PO's "Acme Corporation Inc." | Fuzzy vendor matching (embeddings) | APPROVED with low-confidence flag |
-| 4 | 12 line items, partial shortage on 2 SKUs | Multi-line reasoning | FLAGGED — SHORTAGE |
-| 5 | EUR invoice against USD PO | Currency tool use | REVIEW — FX CONVERSION |
-| 6 | Handwritten "discount applied" annotation | Vision + judgment | REVIEW — HUMAN |
+| 2 | Phone-photo of invoice | Vision OCR resilience | APPROVED |
+| 3 | "ACME Corp." vs "Acme Corporation" | Fuzzy vendor matching | APPROVED |
+| 4 | Partial shortage on monitored SKU | Multi-line reasoning | FLAGGED — SHORTAGE |
+| 5 | EUR invoice against USD PO | FX conversion + price check | FLAGGED — FX / PRICE |
+| 6 | Handwritten discount annotation | Vision + judgment | ESCALATED |
 | 7 | Duplicate of a previously paid invoice | Fraud / duplicate detection | FLAGGED — DUPLICATE |
 | 8 | Vendor billed for SKUs not on PO | Unauthorized line detection | FLAGGED — UNAUTHORIZED |
-| 9 | Tax calculation mismatch | Arithmetic reasoning | FLAGGED — TAX |
-| 10 | Price 20% above PO | Price gouging detection | FLAGGED — PRICE MISMATCH |
-| 11 | Adversarial: near-identical vendor name (typo) | Anti-fraud fuzzy logic | ESCALATED |
-| 12 | Perfect match but late delivery date | Timeliness flagging | APPROVED with note |
+| 9 | Tax rate 12% on 8% PO | Arithmetic / tax reasoning | FLAGGED — TAX MISMATCH |
+| 10 | Price 10% above agreed PO rate | Price gouging detection | FLAGGED — PRICE MISMATCH |
+| 11 | Near-identical vendor name (typo fraud) | Anti-fraud fuzzy logic | ESCALATED |
+| 12 | Perfect match, late delivery note | Timeliness check | APPROVED |
 
-Each invoice has a corresponding PO and WMS receipt seeded in the DB.
+Each invoice PDF has a corresponding PO and WMS receipt seeded in the database. All scenario data lives in `data/scenarios.json` — the single source of truth for seeding, rendering, and eval ground-truth labels.
 
 ---
 
 ## UI Layout
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ FastPay AI · Autonomous 3-Way Invoice Reconciliation    │
-├─────────────────────────────────────────────────────────┤
-│ [▶ Process Today's Batch]  [📊 Eval Mode]  [📤 Upload]  │
-├─────────────────────────────────────────────────────────┤
-│  Invoice Gallery (click to process individually)        │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐                            │
-│  │PDF1│ │PDF2│ │PDF3│ │PDF4│  ← thumbnails              │
-│  │Easy│ │OCR │ │Fuzz│ │FX  │  ← skill badges            │
-│  └────┘ └────┘ └────┘ └────┘                            │
-├─────────────────────────────────────────────────────────┤
-│  Agent Trace (live)         │  Decision Output          │
-│  ▸ extract_pdf...     ✓     │  Status: FLAGGED          │
-│  ▸ lookup_po(PO-887)  ✓     │  Confidence: 94%          │
-│  ▸ query_wms...       ✓     │  Reason: Vendor billed    │
-│  ▸ fuzzy_vendor_match ✓     │  $1,200 for 50 units but  │
-│  ▸ reason_and_decide  ⏳    │  WMS only received 48...  │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FastPay AI  ·  Autonomous 3-Way Invoice Reconciliation      How it works│
+├─────────────────────────────────────────────────────────────────────────┤
+│  Click any invoice to process it, or run the full batch at once.        │
+│  [Explore Database] [Escalations] [Eval Mode] [Reset Results]           │
+│  [Upload Invoice]   [▶ Process Today's Batch]                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│  INVOICE GALLERY                          1/12 processed  ↓ Download All│
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐               │
+│  │ PDF  │ │ PDF  │ │ PDF  │ │ PDF  │ │ PDF  │ │ PDF  │  ← thumbnails  │
+│  │Easy  │ │OCR   │ │Fuzzy │ │Short │ │FX    │ │Hand  │  ← skill tags  │
+│  │  ✓  │ │  ✗  │ │  ✓  │ │  ✓  │ │  ✓  │ │  ⏳ │  ← result dots │
+│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Agent Trace (live SSE)       │  Decision Output                        │
+│  ▸ load_invoice()       ✓    │  Status: FLAGGED                        │
+│  ▸ check_duplicate()    ✓    │  Confidence: 97%                        │
+│  ▸ extract_pdf()        ✓    │  Flag: PRICE_MISMATCH                   │
+│  ▸ lookup_po(PO-0004)   ✓    │                                         │
+│  ▸ query_wms(PO-0004)   ✓    │  Invoice billed $495/unit for DSK-STD   │
+│  ▸ fuzzy_match_vendor() ✓    │  but PO agreed $450/unit — 10% above    │
+│  ▸ reason_and_decide()  ⏳   │  contracted rate.  [View Trace ↗]       │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### The Three "Wow" Moves
+### The "Wow" Moments
 
-1. **"Process Today's Batch" headline button** — agent autonomously processes all 12 invoices in sequence, with live trace, decisions populating one by one, and running totals (cost, latency, approvals).
-2. **Live Eval Mode dashboard** — runs the agent against ground-truth labels; surfaces accuracy, precision, recall, confusion matrix, p50/p95 latency, cost per invoice, and a model-comparison view (Gemini Flash vs Claude Haiku vs Llama).
-3. **Langfuse trace viewer** — "View Full Trace" link opens the Langfuse trace for the run, showing every prompt, tool call, and token cost.
-
-### Optional features
-
-- **"Adversarial Mode" toggle** — injects subtle errors into invoices on the fly (typos, swapped digits) to prove the agent reasons rather than memorizes.
-- **"Bring Your Own Invoice"** — small upload link for power users.
+1. **Live batch processing** — "Process Today's Batch" runs all 12 invoices sequentially with per-step SSE trace, decisions populating in real time, and running totals (approved/flagged/escalated) in the ActionBar.
+2. **Eval Mode** — benchmarks the agent against ground-truth labels and streams per-scenario pass/fail with a full confusion matrix, F1 scores, and latency percentiles.
+3. **Escalations view** — mirrors what an AP manager's review queue looks like: every flagged invoice with the exact SKU responsible highlighted, the agent's reasoning, and the confidence score.
+4. **Database Explorer** — an ERP-style browse of every PO, WMS receipt, and invoice in the system, showing which specific line items triggered a flag.
+5. **Bring Your Own Invoice** — upload any real invoice PDF/image; a synthetic PO + WMS is generated with one injected discrepancy, then the full agent pipeline runs and explains what it found.
 
 ---
 
 ## Cost & Abuse Protection
 
-### Why this matters
-
-Once the app is public on the internet, anyone can hammer the API endpoint and run up an LLM bill. Defense in depth is built in from day one.
-
 ### Layered defenses
 
 | Layer | Mechanism | Effect |
 |---|---|---|
-| **1. Response caching** | SQLite cache keyed by `(scenario_id, model)` | After first run, repeat requests cost $0 |
-| **2. Input locking** | API rejects any payload that isn't a known scenario ID or whitelisted upload | Blocks prompt injection and runaway-token attacks |
-| **3. IP rate limiting** | Upstash Redis: 10 runs / IP / hour | Throttles abuse at the edge |
-| **4. Vercel Edge Middleware** | Rate limit before serverless wakes up | Zero compute cost on blocked requests |
-| **5. Daily budget guard** | Hard cap on total LLM calls per day | Catastrophic-failure safeguard |
-| **6. Upload size & MIME validation** | Reject anything that isn't a small PDF | Blocks abusive uploads |
+| **1. Response caching** | Match results stored in DB keyed by invoice_id | Repeat requests cost $0 after first run |
+| **2. Input locking** | API rejects unknown scenario IDs or oversized uploads | Blocks prompt injection and runaway-token attacks |
+| **3. IP rate limiting** | Upstash Redis: 20 req/min/IP | Throttles abuse at the edge |
+| **4. Vercel Edge Middleware** | Rate limit fires before serverless wakes up | Zero compute cost on blocked requests |
+| **5. Daily budget guard** | `MAX_DAILY_RUNS` hard cap (default 100 ≈ $0.30/day) | Catastrophic-failure safeguard |
+| **6. Upload validation** | File size ≤ 10 MB, MIME must be PDF/JPEG/PNG/WEBP | Blocks abusive uploads |
 | **7. No secrets in client** | All LLM calls happen server-side only | API keys never reach the browser |
+| **8. BYOI file cleanup** | Uploaded files written to `/tmp` and deleted after processing | No accumulation on filesystem |
 
 ---
 
 ## Security & Workflow Rules
 
-These are durable rules for all development on this repo:
-
-- **No secrets in git.** Every commit and push is preceded by a sweep for API keys, env vars, or private data. `.env*` files are gitignored from day one.
-- **Brief cybersecurity assessment before every commit.** Check for SQL injection (parameterized queries only), XSS (escape user content), insecure API routes (validate inputs), and supply-chain risk (lockfile committed).
+- **No secrets in git.** Every commit is preceded by a sweep for API keys. `.env*` is gitignored from day one.
 - **All LLM I/O validated with Zod schemas.** No unchecked JSON parsing.
 - **Server-side LLM calls only.** Client never holds an API key.
 - **Parameterized DB queries only.** No string-concatenated SQL.
-- **No destructive git operations without confirmation.** No `--force`, no `reset --hard`, no `--no-verify`.
+- **No destructive git operations without confirmation.**
 
 ---
 
 ## Project Roadmap & Progress
 
-Phased plan. Each phase ends with a working, committable checkpoint.
-
 ### Phase 0 — Foundation ✅
-- [x] Initialize Next.js 14 + TypeScript + Tailwind project
-- [x] Set up shadcn/ui components
-- [x] Configure ESLint, `.gitignore`, `.env.example`, `.gitattributes`
-- [x] Initialize git, connect to GitHub repo
-- [x] Set up SQLite + repository pattern abstraction
-- [x] Define core data schemas (PO, WMS Receipt, Invoice, Match Result)
+- [x] Next.js 14 + TypeScript + Tailwind + shadcn/ui
+- [x] SQLite + repository pattern abstraction (dual-mode: SQLite dev / Neon prod)
+- [x] Core data schemas (PO, WMS Receipt, Invoice, Match Result) with Zod
 
 ### Phase 1 — Static UI Skeleton ✅
-- [x] Top nav with title and action buttons
-- [x] Invoice gallery grid (12 cards with difficulty badges + skill tags)
-- [x] Agent trace panel (animated step-by-step placeholder)
-- [x] Decision output panel (status, confidence bar, reasoning)
-- [x] Eval Mode tab with ground-truth summary stubs
+- [x] ActionBar with navigation buttons
+- [x] Invoice gallery grid with difficulty badges + skill tags
+- [x] Agent trace panel and decision output panel
 
 ### Phase 2 — Synthetic Data Pipeline ✅
-We **generate everything ourselves** — full control over ground truth, no licensing or PII risk, tunable difficulty, and the pipeline itself becomes a portfolio signal ("built a synthetic eval dataset").
+- [x] 12-scenario JSON file (`data/scenarios.json`) — single source of truth for seeding, rendering, and eval
+- [x] 5 HTML invoice templates with SVG vendor logos (Apex, Northwind, EuroTech, Crestline, Generic)
+- [x] Puppeteer rendering: HTML → PNG → PDF
+- [x] `sharp` post-processing: scanned, phone-photo, handwritten, crumpled variants
+- [x] Seed script (`npm run seed`) — renders PDFs + inserts all records
+- [x] Multi-line POs: 1–3 line items per scenario for realistic matching
 
-**Flow:**
-1. Define all 12 scenarios as a single JSON file (POs, WMS receipts, invoices with planted mismatches + ground-truth labels). One source of truth that feeds both the demo and the eval suite.
-2. Seed PO and WMS tables into SQLite from the JSON.
-3. Render invoices as PDFs using HTML + Puppeteer, with 4-5 distinct vendor templates (different layouts, fonts, fake SVG logos, color schemes) so the vision model encounters real variety.
-4. Post-process selected invoices with `sharp` to create messy variants:
-
-| Variant | Transformation |
-|---|---|
-| Clean digital | None — straight HTML→PDF |
-| Scanned | PNG conversion, noise, slight blur, off-white background |
-| Phone photo | Rotation 3-7°, perspective skew, shadow gradient |
-| Handwritten note | Overlay a pre-drawn PNG annotation |
-| Crumpled | Apply paper-texture overlay |
-
-5. Vendor names and logos are **fully fictional** (no trademark risk) — generated via Faker.js seeded for reproducibility. Logos are simple SVG (geometric shapes + vendor name).
-6. Final PDFs saved to `/public/invoices/`.
-
-**Tools:** Puppeteer (HTML→PDF), `sharp` (image effects), Faker.js (data generation).
-
-**Tasks:**
-- [x] Define scenario JSON schema (Zod) — POs, WMS receipts, invoices, ground-truth labels
-- [x] Author the 12 scenarios JSON file (`data/scenarios.json` — single source of truth)
-- [x] Build 5 HTML invoice templates with SVG logos (Apex, Northwind, EuroTech, Crestline, Generic)
-- [x] Puppeteer rendering script — HTML → PNG → PDF
-- [x] `sharp` post-processing for messy variants (scanned, phone-photo, handwritten, crumpled)
-- [x] Seed script: `npm run seed` → inserts 12 POs + WMS receipts + invoices, renders 12 PDFs to `/public/invoices/`
-- [x] Ground-truth labels in `data/scenarios.json` — same file feeds Eval Mode (Phase 6)
-
-### Phase 3 — Agent Tools (Individual) ✅
-- [x] `extract_pdf` — Gemini vision extraction with Zod schema validation
-- [x] `lookup_po` — query PO from DB
-- [x] `query_wms` — query WMS receipt from DB
+### Phase 3 — Agent Tools ✅
+- [x] `extract_pdf` — Gemini vision with Zod validation
+- [x] `lookup_po` + `query_wms` — typed DB tool calls
 - [x] `fuzzy_match_vendor` — embeddings + cosine similarity
-- [x] `convert_currency` — FX rate lookup with 6h SQLite cache + free API fallback
-- [x] `check_duplicate` — invoice_number-based duplicate detection against match_results
-- [x] `reason_and_decide` — deterministic rule engine (shortage, price mismatch, unauthorized items, vendor mismatch, FX) + Gemini-generated natural language explanation
-- [x] `escalate` — low-confidence escalation path
-- [x] Full agent orchestrator loop (`orchestrator.ts`) with EmitFn trace event streaming
-- [x] `POST /api/agent/run` — REST endpoint wrapping the orchestrator
-- [x] `npm run test:agent <scenario-id>` — CLI smoke test runner
-- [x] Smoke-tested: scenario-01 APPROVED ✓, scenario-04 FLAGGED/SHORTAGE ✓, scenario-07 FLAGGED/DUPLICATE ✓
+- [x] `convert_currency` — FX rate with 6h cache
+- [x] `check_duplicate` — invoice_number-based fraud detection
+- [x] `reason_and_decide` — deterministic rule engine + Gemini explanation
+- [x] Full orchestrator loop with SSE trace streaming
 
 ### Phase 4 — SSE Streaming & Observability ✅
-- [x] `POST /api/agent/stream` — Server-Sent Events endpoint; each trace step streamed as it fires
-- [x] Langfuse integration — optional (activates when `LANGFUSE_*` env vars set); creates one trace per run with per-step spans
-- [x] `trace_id` stored in `match_results` for Langfuse deep-link in Phase 7
-- [x] Graceful no-op when Langfuse keys are absent (dev works without them)
-- [x] SSE sentinel `{"type":"done"}` closes the stream cleanly on client side
+- [x] `/api/agent/stream` — per-step SSE endpoint
+- [x] Langfuse integration — optional; per-run traces with spans
+- [x] `trace_id` stored in match_results for deep-link in UI
 
 ### Phase 5 — Live UI Integration ✅
-- [x] Gallery card click → real agent run via SSE (`/api/agent/stream`)
-- [x] Live trace panel: each step appears as `▸ running` then flips to `✓ done` in-place; auto-scrolls
-- [x] Decision panel reveals live result (status badge, confidence bar, agent reasoning, elapsed time)
-- [x] Result dot on card shows actual agent outcome (emerald/red/amber), not static ground-truth
-- [x] "Process Today's Batch" runs all 12 invoices sequentially; ActionBar shows live approved/flagged/escalated counters
-- [x] Cards disabled while any run is in progress; gallery header shows "N/12 processed"
+- [x] Gallery card click → real agent run via SSE
+- [x] Live trace panel with in-place step updates
+- [x] Decision panel with status badge, confidence bar, reasoning, latency
+- [x] "Process Today's Batch" with live approved/flagged/escalated counters
 
 ### Phase 6 — Eval Mode ✅
-- [x] `POST /api/eval/run` — SSE eval endpoint: clears match_results, re-runs all 12 scenarios fresh, streams per-result events
-- [x] Full metrics: accuracy, macro F1, per-class precision/recall/F1, confusion matrix (3×3), p50/p95 latency, avg confidence
-- [x] `clearMatchResults()` + invoice status reset so eval always runs from a clean slate
-- [x] EvalDashboard rewrite: progress bar, metric cards, confusion matrix, per-class table, per-scenario pass/fail table
-- [x] Fixed embedding model: `text-embedding-004` → `gemini-embedding-001` (correct model ID for v1 API keys)
-- [x] Baseline result: **73% accuracy (8/11)** — 3 documented gaps: ESCALATED scenarios misclassified (handwriting detection not yet implemented), fuzzy vendor threshold edge case, transient model 503
+- [x] `/api/eval/run` — SSE eval endpoint, runs all 12 scenarios fresh
+- [x] Full metrics: accuracy, macro F1, per-class P/R/F1, confusion matrix, p50/p95 latency
+- [x] Per-scenario pass/fail table with "expected / got" labels for mismatches
+- [x] Skip detection: scenarios missing from DB show amber warning instead of silent dash
+- [x] Eval fallback lookup: uses `invoice_number` when `scenario_id` lookup fails
 
 ### Phase 7 — Polish & Wow Factor ✅
-- [x] Real invoice thumbnails in gallery cards (Puppeteer crop → JPEG, icon fallback)
+- [x] Real invoice thumbnails in gallery cards (Puppeteer crop → JPEG)
 - [x] Framer Motion animations on trace steps and decision reveal
 - [x] Langfuse trace deep-link in result panel
-- [x] Loading states, empty states, error states (AnimatePresence transitions)
-- [x] "Bring Your Own Invoice" upload — synthetic PO+WMS generated with injected discrepancy; supports PDF/JPEG/PNG/WEBP up to 10 MB
-- [ ] "Adversarial Mode" toggle *(deferred — not in scope for v1)*
+- [x] **Bring Your Own Invoice** — modal upload; synthetic PO+WMS with injected discrepancy
+- [x] BYOI bug fix: orchestrator skips PDF re-extraction for BYOI invoices, uses stored data and correct synthetic PO reference so injected discrepancy is always what the agent flags
+- [x] PDF download on each gallery card + "Download All" button
 
 ### Phase 8 — Abuse Protection, CI/CD & Deployment ✅
-- [x] Upstash Redis rate limiting middleware — sliding window 20 req/min/IP on all agent and eval endpoints
-- [x] Daily budget guard — `MAX_DAILY_RUNS` env var (default 100 ≈ $0.30/day max); enforced on stream, eval, and BYOI routes via Neon row count
-- [ ] Input schema validation on all API routes
-- [ ] Pre-deploy security sweep (no secrets, no SQL injection, no XSS)
-- [x] `.github/workflows/ci.yml` — GitHub Actions CI: runs `lint` + `tsc --noEmit` + `npm run build` on every push/PR; blocks merge on failure
-- [x] Vercel GitHub integration — auto-deploys to production on merge to `master`
-- [x] Deploy to Vercel — live at [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
-- [x] Custom domain — `fastpay-ai.mezapps.com`
+- [x] Upstash Redis rate limiting — sliding window 20 req/min/IP
+- [x] Daily budget guard — `MAX_DAILY_RUNS` env var
+- [x] BYOI uploads to `/tmp` (Vercel read-only filesystem fix)
+- [x] GitHub Actions CI — lint + tsc + build on every push
+- [x] Vercel auto-deploy on merge to `master`
+- [x] Live at [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
 
-### Phase 9 — Documentation & Showcase ✅
-- [x] In-app "How it works" modal explaining the architecture
-- [x] README polish — Local Development guide, env var documentation, Neon setup notes
-- [x] Architecture diagram in repo — Mermaid flowchart in README (renders on GitHub)
-- [x] Public demo link — [fastpay-ai.mezapps.com](https://fastpay-ai.mezapps.com)
+### Phase 9 — Database Explorer & Escalations ✅
+- [x] **Database Explorer** — `/api/db/browse` endpoint + ERP-style UI; browse POs, WMS receipts, invoices with header/detail rows per line item
+- [x] **Impacted SKU highlighting** — non-approved invoices show a `⚠` badge on the specific line items responsible for the flag (PRICE_MISMATCH, SHORTAGE, UNAUTHORIZED_ITEMS)
+- [x] **Escalations view** — dedicated tab showing all FLAGGED/ESCALATED invoices with flag reason, confidence, agent explanation, and impacted SKU detail
+- [x] **Reset Results** button — clears all match results and invoice statuses from DB
+- [x] Full font color audit — all near-invisible `zinc-600`/`zinc-700` text bumped to legible `zinc-400`/`zinc-500` across every component
+
+### Phase 10 — UI Consolidation ✅
+- [x] Removed duplicate tab strip (Gallery / Eval / Explore / Escalations were shown twice)
+- [x] Single ActionBar as the sole navigation surface
+- [x] Upload Invoice repositioned to just before Process Today's Batch
 
 ---
 
@@ -374,9 +346,9 @@ npm install
 
 # environment
 cp .env.example .env.local
-# edit .env.local and fill in the values below
+# edit .env.local — see table below
 
-# seed the database (creates tables + inserts all 12 scenarios)
+# seed the database + generate PDFs
 npm run seed
 
 # dev server
@@ -390,26 +362,28 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Required | Notes |
 |---|---|---|
 | `GEMINI_API_KEY` | ✅ Yes | Google AI Studio → API Keys |
-| `DATABASE_URL` | Optional | Leave blank to use local SQLite. Set to a `postgresql://` Neon connection string for Postgres. |
+| `DATABASE_URL` | Optional | Leave blank for local SQLite. Set to a `postgresql://` Neon connection string for Postgres. |
 | `LANGFUSE_PUBLIC_KEY` | Optional | Langfuse project → Settings → API Keys |
 | `LANGFUSE_SECRET_KEY` | Optional | Same as above |
-| `LANGFUSE_BASE_URL` | Optional | `https://cloud.langfuse.com` (US) or `https://eu.cloud.langfuse.com` (EU). Must match the region your Langfuse project was created in — the trace deep-link uses this value. |
-| `UPSTASH_REDIS_REST_URL` | Optional | Upstash Redis console → REST URL. Rate limiting is a no-op when absent. |
+| `LANGFUSE_BASE_URL` | Optional | `https://cloud.langfuse.com` (US) or `https://eu.cloud.langfuse.com` (EU). Must match the region your project was created in — the trace deep-link uses this value. |
+| `UPSTASH_REDIS_REST_URL` | Optional | Upstash console → REST URL. Rate limiting is a no-op when absent. |
 | `UPSTASH_REDIS_REST_TOKEN` | Optional | Same as above |
+| `MAX_DAILY_RUNS` | Optional | Default `100`. Hard cap on total agent runs per day across all users. |
 
-> **Langfuse region:** If you created your Langfuse project in EU, set `LANGFUSE_BASE_URL=https://eu.cloud.langfuse.com`. Using the wrong region causes traces to be sent correctly but the in-app trace link to open the wrong server (trace not found).
+> **Langfuse region:** If your Langfuse project is in EU, set `LANGFUSE_BASE_URL=https://eu.cloud.langfuse.com`. The wrong region sends traces correctly but makes the in-app deep-link point at the wrong server.
 
 ### Database options
 
-**Local SQLite (default):** Leave `DATABASE_URL` unset or point it to a file path. `npm run seed` creates `data/fastpay.db` and inserts all records. Zero config.
+**Local SQLite (default):** Leave `DATABASE_URL` unset. `npm run seed` creates `data/fastpay.db` and inserts all records. Zero config.
 
-**Neon Postgres (production):** Create a Neon project, copy the pooled connection string, set it as `DATABASE_URL`. Run `npm run seed` — it reads `.env.local` automatically, creates the schema, and inserts all 12 scenarios. The app auto-migrates on first request via `CREATE TABLE IF NOT EXISTS`.
+**Neon Postgres (production):** Create a Neon project, copy the pooled connection string, set it as `DATABASE_URL`. Run `npm run seed` — it auto-detects Postgres, creates the schema, and inserts all 12 scenarios.
 
 ### Seeding notes
 
-- `npm run seed` re-renders all 12 invoice PDFs via Puppeteer and re-inserts all records. Safe to re-run — inserts use `ON CONFLICT ... DO UPDATE` (Postgres) / `INSERT OR REPLACE` (SQLite).
-- PDFs land in `public/invoices/` and thumbnails in `public/thumbnails/`. Both are committed to git so Vercel can serve them without a build-time seed step.
-- BYOI (Bring Your Own Invoice) uploads are gitignored — they are ephemeral and stored temporarily on the server filesystem.
+- `npm run seed` clears existing data, re-renders all 12 invoice PDFs via Puppeteer, and re-inserts every record. Safe to re-run.
+- PDFs land in `public/invoices/` and thumbnails in `public/thumbnails/`. Both are committed to git so Vercel can serve them as static files without a build-time seed step.
+- BYOI uploads are written to `/tmp` and deleted after each request — they are ephemeral and never committed.
+- **PDF regeneration cannot run on Vercel** (requires headless Chromium + write access to `public/`). Run `npm run seed` locally and commit the updated PDFs when scenario data changes.
 
 ---
 
